@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="File di origine\shaders">
+      <UniqueIdentifier>{5a757947-4414-45a0-a323-4e7476bd9526}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -21,5 +24,21 @@
     <ClCompile Include="glad.c">
       <Filter>File di origine</Filter>
     </ClCompile>
+    <ClCompile Include="Shader.cpp">
+      <Filter>File di origine</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Shader.h">
+      <Filter>File di intestazione</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\fragment.glsl">
+      <Filter>File di origine\shaders</Filter>
+    </None>
+    <None Include="shaders\vertex.glsl">
+      <Filter>File di origine\shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
