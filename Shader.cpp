@@ -42,7 +42,8 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
 	}
 	catch (std::ifstream::failure e) {
 		std::cout << "ERRORE: File shader non letto"<<std::endl;
-		std::cerr << fragmentPath <<std::endl << vertexPath;
+		std::cerr << fragmentPath <<std::endl << vertexPath<<std::endl;
+		std::cerr << std::filesystem::current_path() <<std::endl;
 		throw;
 	}
 
