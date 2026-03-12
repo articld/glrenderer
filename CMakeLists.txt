@@ -19,11 +19,21 @@ add_executable(glrenderer
         Shader.cpp
         Shader.h)
 
-target_link_libraries(glrenderer
-        glfw
-        glad
-        opengl32
-)
+find_package(OpenGL REQUIRED)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+	target_link_libraries(glrenderer
+		glfw
+		glad
+		opengl32
+	)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	target_link_libraries(glrenderer
+		glfw
+		glad
+		GL
+	)
+endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${GLFW_DIR}/include ${GLAD_DIR}/include

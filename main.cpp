@@ -40,10 +40,10 @@ int main() {
 		return -1;
 	}
 
-	Shader shader("shaders/verex.glsl", "shaders/fragment.glsl");
+	Shader shader("../shaders/vertex.glsl", "../shaders/fragment.glsl");
 
 	float vertices[] = {
-		//è un rettangolo, uso triangoli ma posso omettere i vertici già esistenti
+		//ï¿½ un rettangolo, uso triangoli ma posso omettere i vertici giï¿½ esistenti
 		//vertici		   //colori
 		 0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,
 		-0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,
