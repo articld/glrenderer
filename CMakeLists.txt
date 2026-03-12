@@ -12,6 +12,12 @@ add_library(glad STATIC
 )
 target_include_directories(glad PUBLIC ${GLAD_DIR}/include)
 
+set(STB_IMAGE_DIR "${CMAKE_SOURCE_DIR}/libraries/stb_image")
+add_library(stb_image STATIC
+		${STB_IMAGE_DIR}/src/stb_image.cpp
+)
+target_include_directories(stb_image PUBLIC ${STB_IMAGE_DIR}/include)
+
 include_directories(.)
 
 add_executable(glrenderer
@@ -23,12 +29,14 @@ find_package(OpenGL REQUIRED)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	target_link_libraries(glrenderer
+		stb_image
 		glfw
 		glad
 		opengl32
 	)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	target_link_libraries(glrenderer
+		stb_image
 		glfw
 		glad
 		GL
