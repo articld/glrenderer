@@ -21,11 +21,12 @@ target_include_directories(stb_image PUBLIC ${STB_IMAGE_DIR}/include)
 include_directories(.)
 
 add_executable(glrenderer
-        main.cpp
-        Shader.cpp
-        Shader.h)
+		src/main.cpp
+		src/Shader.cpp
+		src/Shader.h)
 
 find_package(OpenGL REQUIRED)
+find_package(glm CONFIG REQUIRED)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	target_link_libraries(glrenderer
@@ -33,6 +34,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 		glfw
 		glad
 		opengl32
+		glm::glm-header-only
 	)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	target_link_libraries(glrenderer
@@ -40,6 +42,7 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		glfw
 		glad
 		GL
+		glm::glm-header-only
 	)
 endif()
 

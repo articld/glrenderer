@@ -2,9 +2,11 @@
 #include<GLFW/glfw3.h>
 #include<stb_image.h>
 
+#include<glm/glm.hpp>
+
 #include<iostream>
 
-#include"Shader.h"
+#include "Shader.h"
 
 constexpr int SCR_WIDTH = 800;
 constexpr int SCR_HEIGHT = 600;
@@ -41,7 +43,7 @@ int main() {
 		return -1;
 	}
 
-	Shader shader("../shaders/vertex.glsl", "../shaders/fragment.glsl");
+	Shader shader("../src/shaders/vertex.glsl", "../src/shaders/fragment.glsl");
 
 	float vertices[] = {
 		//vertici		   //colori			   //coordinate texture
@@ -95,7 +97,7 @@ int main() {
 
 	int width, height, nrChannels;
 	stbi_set_flip_vertically_on_load(true);
-	unsigned char *data = stbi_load("../textures/container.jpg", &width, &height, &nrChannels, 0);
+	unsigned char *data = stbi_load("../resources/textures/container.jpg", &width, &height, &nrChannels, 0);
 	//il secondo parametro è i livello della mipmap
 	if (data) {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -113,7 +115,7 @@ int main() {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	data = stbi_load("../textures/awesomeface1.png", &width, &height, &nrChannels, 0);
+	data = stbi_load("../resources/textures/awesomeface1.png", &width, &height, &nrChannels, 0);
 	if (data) {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
