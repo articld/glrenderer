@@ -124,6 +124,25 @@ int main() {
 	shader.setInt("texture1", 0);
 	shader.setInt("texture2", 1);
 
+	auto cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+	auto cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
+	//nella matrice view voglio l'asse z positivo. Siccome in opengl la camera punta verso l'asse z negativo
+	//vogliamo quindi negare il vettore direzione. sottraendo così camerapos e cameratarget ottengo la direzione
+	//che punta verso l'asse z positivo della camera
+	glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);
+	//abbiamo bisogno dell'asse x positivo per lo spazio della camera. Se si definisce il vettore up posso fare il crossprodotto
+	auto up = glm::vec3(0.0f, 1.0f, 0.0f);
+	glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
+	//ora che abbiamo l'asse x e l'asse z, ricavo l'asse y
+	glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);
+	glm::mat4 view = glm::lookAt(cameraPos, cameraTarget, cameraUp);
+
+	auto projection = glm::mat4(1.0f);
+	projection = glm::perspective(glm::radians(45.0f), (float)SCR_HEIGHT/(float)SCR_WIDTH, 0.1f, 100.0f);
+
+	shader.setMat4("projection", projection);
+	shader.setMat4("view", view);
+
 	//render loop
 	//wireframe
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -131,7 +150,6 @@ int main() {
 	while (!glfwWindowShouldClose(window)) {
 		//input
 		process_input(window);
-
 		//comandi rendering
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -141,14 +159,6 @@ int main() {
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, texture2);
 		shader.use();
-
-		auto view = glm::mat4(1.0f);
-		auto projection = glm::mat4(1.0f);
-		view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-		projection = glm::perspective(glm::radians(45.0f), (float)SCR_HEIGHT/(float)SCR_WIDTH, 0.1f, 100.0f);
-
-		shader.setMat4("projection", projection);
-		shader.setMat4("view", view);
 
 		glBindVertexArray(VAO);
 		for (unsigned int i = 0; i < 10; i++) {
