@@ -13,13 +13,76 @@
 constexpr int SCR_WIDTH = 800;
 constexpr int SCR_HEIGHT = 600;
 
+auto cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+auto cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+auto cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+
+float fov = 45.0f;
+
+glm::vec2 lastMousePos = glm::vec2(SCR_WIDTH/2,SCR_HEIGHT/2);
+bool firstMouse = true;
+float yaw = -90.0f;
+float pitch = 0.0f;
+float roll = 0.0f;
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
+}
+//per calcolare yaw pitch e roll calcolo l'offset del mouse partendo dal precedente frame al nuovo
+void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+	if (firstMouse) {
+		lastMousePos.x = xpos;
+		lastMousePos.y = ypos;
+		firstMouse = false;
+	}
+	float xoffset = xpos - lastMousePos.x;
+	//al contrario perché y va dal fondo all'inizio
+	float yoffset = lastMousePos.y - ypos;
+
+	lastMousePos.x = xpos;
+	lastMousePos.y = ypos;
+	const float sensitivity = 0.1f;
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
+
+	yaw += xoffset;
+	pitch += yoffset;
+	//limiti per evitare che l'utente riesca a guardare più alto di 89 gradi o più in basso di -89 gradi
+	if (pitch > 89.0f)
+		pitch = 89.0f;
+	else if (pitch < -89.0f)
+		pitch = -89.0f;
+
+	glm::vec3 direction;
+	direction.x = glm::cos(glm::radians(yaw)) * glm::cos(glm::radians(pitch));
+	direction.y = glm::sin(glm::radians(pitch));
+	direction.z = glm::sin(glm::radians(yaw)) * glm::cos(glm::radians(pitch));
+	cameraFront = glm::normalize(direction);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+	fov -= (float)yoffset;
+	if (fov < 1.0f)
+		fov = 1.0f;
+	if (fov > 45.0f)
+		fov = 45.0f;
 }
 
 void process_input(GLFWwindow* window) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
+	const float cameraSpeed = 4.0f * deltaTime;
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		cameraPos += cameraSpeed * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		cameraPos -= cameraSpeed * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 }
 
 int main() {
@@ -35,9 +98,10 @@ int main() {
 		glfwTerminate();
 		return -1;
 	}
-	
+
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	//passiamo a glad la funzione per caricare gli indirizzi delle funzioni opengl
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -124,17 +188,19 @@ int main() {
 	shader.setInt("texture1", 0);
 	shader.setInt("texture2", 1);
 
-	auto projection = glm::mat4(1.0f);
-	projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH/(float)SCR_HEIGHT, 0.1f, 100.0f);
-	shader.setMat4("projection", projection);
-
 	//render loop
 	//wireframe
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glEnable(GL_DEPTH_TEST);
 	while (!glfwWindowShouldClose(window)) {
+		float currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
 		//input
 		process_input(window);
+		glfwSetCursorPosCallback(window, mouse_callback);
+		glfwSetScrollCallback(window, scroll_callback);
+
 		//comandi rendering
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -145,11 +211,13 @@ int main() {
 		glBindTexture(GL_TEXTURE_2D, texture2);
 		shader.use();
 
+		auto projection = glm::mat4(1.0f);
+		projection = glm::perspective(glm::radians(fov), (float)SCR_WIDTH/(float)SCR_HEIGHT, 0.1f, 100.0f);
+		shader.setMat4("projection", projection);
+
 		glm::mat4 view = glm::mat4(1.0f);
 		float radius = 10.0f;
-		float camX = static_cast<float>(glm::sin(glfwGetTime()) * radius);
-		float camZ = static_cast<float>(glm::cos(glfwGetTime()) * radius);
-		view = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 		shader.setMat4("view", view);
 
 		glBindVertexArray(VAO);
