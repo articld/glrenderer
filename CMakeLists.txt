@@ -23,7 +23,9 @@ include_directories(.)
 add_executable(glrenderer
 		src/main.cpp
 		src/Shader.cpp
-		src/Shader.h)
+		src/Shader.h
+		src/Camera.cpp
+		src/Camera.h)
 
 find_package(OpenGL REQUIRED)
 find_package(glm CONFIG REQUIRED)

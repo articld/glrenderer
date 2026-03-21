@@ -7,26 +7,23 @@
 
 #include<iostream>
 
+#include "Camera.h"
 #include "Shader.h"
 #include "primitives/cube.h"
 
 constexpr int SCR_WIDTH = 800;
 constexpr int SCR_HEIGHT = 600;
 
-auto cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-auto cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-auto cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f)
+			 , glm::vec3(0.0f, 0.0f, -1.0f)
+			 , glm::vec3(0.0f, 1.0f, 0.0f)
+			 , static_cast<float>(SCR_WIDTH)/static_cast<float>(SCR_HEIGHT));
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-float fov = 45.0f;
-
 glm::vec2 lastMousePos = glm::vec2(SCR_WIDTH/2,SCR_HEIGHT/2);
 bool firstMouse = true;
-float yaw = -90.0f;
-float pitch = 0.0f;
-float roll = 0.0f;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
@@ -44,45 +41,24 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 
 	lastMousePos.x = xpos;
 	lastMousePos.y = ypos;
-	const float sensitivity = 0.1f;
-	xoffset *= sensitivity;
-	yoffset *= sensitivity;
-
-	yaw += xoffset;
-	pitch += yoffset;
-	//limiti per evitare che l'utente riesca a guardare più alto di 89 gradi o più in basso di -89 gradi
-	if (pitch > 89.0f)
-		pitch = 89.0f;
-	else if (pitch < -89.0f)
-		pitch = -89.0f;
-
-	glm::vec3 direction;
-	direction.x = glm::cos(glm::radians(yaw)) * glm::cos(glm::radians(pitch));
-	direction.y = glm::sin(glm::radians(pitch));
-	direction.z = glm::sin(glm::radians(yaw)) * glm::cos(glm::radians(pitch));
-	cameraFront = glm::normalize(direction);
+	camera.processMouse(xoffset, yoffset, true);
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
-	fov -= (float)yoffset;
-	if (fov < 1.0f)
-		fov = 1.0f;
-	if (fov > 45.0f)
-		fov = 45.0f;
+	camera.processScroll(yoffset);
 }
 
 void process_input(GLFWwindow* window) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
-	const float cameraSpeed = 4.0f * deltaTime;
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		cameraPos += cameraSpeed * cameraFront;
+		camera.processKeyboard(FORWARD, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		cameraPos -= cameraSpeed * cameraFront;
+		camera.processKeyboard(BACKWARD, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+		camera.processKeyboard(LEFT, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+		camera.processKeyboard(RIGHT, deltaTime);
 }
 
 int main() {
@@ -92,8 +68,8 @@ int main() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "OpenGL", NULL, NULL);
-	if (window == NULL) {
+	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "OpenGL", nullptr, nullptr);
+	if (window == nullptr) {
 		std::cerr<< "impossibile creare finestra glfw" << std::endl;
 		glfwTerminate();
 		return -1;
@@ -211,14 +187,8 @@ int main() {
 		glBindTexture(GL_TEXTURE_2D, texture2);
 		shader.use();
 
-		auto projection = glm::mat4(1.0f);
-		projection = glm::perspective(glm::radians(fov), (float)SCR_WIDTH/(float)SCR_HEIGHT, 0.1f, 100.0f);
-		shader.setMat4("projection", projection);
-
-		glm::mat4 view = glm::mat4(1.0f);
-		float radius = 10.0f;
-		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-		shader.setMat4("view", view);
+		shader.setMat4("projection", camera.getPerspectiveMatrix());
+		shader.setMat4("view", camera.getViewMatrix());
 
 		glBindVertexArray(VAO);
 		for (unsigned int i = 0; i < 10; i++) {
