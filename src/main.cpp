@@ -25,6 +25,8 @@ float lastFrame = 0.0f;
 glm::vec2 lastMousePos = glm::vec2(SCR_WIDTH/2,SCR_HEIGHT/2);
 bool firstMouse = true;
 
+glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 }
@@ -85,16 +87,17 @@ int main() {
 		return -1;
 	}
 
-	Shader shader("../src/shaders/vertex.glsl", "../src/shaders/fragment.glsl");
+	Shader shader("../src/shaders/vertex.vs", "../src/shaders/fragment.fs");
+	Shader lightSource("../src/shaders/lightSource.vs", "../src/shaders/lightSource.fs");
 
 	//vertex buffer objects. Dove vengono memorizzati i vertici per poi essere spediti in gpu
 	//vertex array object:dove vengono memorizzati gli attributi dei vertici
 	//element buffer object: memorizza gli indici dei triangoli
-	unsigned int VBO, VAO;
-	glGenVertexArrays(1, &VAO);
+	unsigned int VBO, cubeVAO;
+	glGenVertexArrays(1, &cubeVAO);
 	glGenBuffers(1, &VBO);
 
-	glBindVertexArray(VAO);
+	glBindVertexArray(cubeVAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cube), cube, GL_STATIC_DRAW);
@@ -105,6 +108,13 @@ int main() {
 
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3*sizeof(float)));
 	glEnableVertexAttribArray(1);
+
+	unsigned int lightCubeVAO;
+	glGenVertexArrays(1, &lightCubeVAO);
+	glBindVertexArray(lightCubeVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
 
 	//render loop
 	//wireframe
@@ -123,15 +133,26 @@ int main() {
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		//cubo arancione
 		shader.use();
-
-		shader.setMat4("projection", camera.getPerspectiveMatrix());
-		shader.setMat4("view", camera.getViewMatrix());
-
-		glBindVertexArray(VAO);
-
+		shader.setVec3("objectColor", glm::vec3(1.0f, 0.5f, 0.31f));
+		shader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
 		auto model = glm::mat4(1.0f);
 		shader.setMat4("model", model);
+		shader.setMat4("projection", camera.getPerspectiveMatrix());
+		shader.setMat4("view", camera.getViewMatrix());
+		glBindVertexArray(cubeVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		lightSource.use();
+		glBindVertexArray(lightCubeVAO);
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, lightPos);
+		model = glm::scale(model, glm::vec3(0.1f));
+		lightSource.setMat4("model", model);
+		lightSource.setMat4("projection", camera.getPerspectiveMatrix());
+		lightSource.setMat4("view", camera.getViewMatrix());
+		glBindVertexArray(lightCubeVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 
 		//cambio buffer
@@ -139,9 +160,9 @@ int main() {
 		glfwPollEvents();
 	}
 
-	//Scollega VBO e VAO
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
+	glDeleteVertexArrays(1, &cubeVAO);
+	glDeleteVertexArrays(1, &lightCubeVAO);
+	glDeleteBuffers(1, &VBO);
 
 	glfwTerminate();
 	return 0;
