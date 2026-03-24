@@ -52,6 +52,7 @@ class Camera {
         void processKeyboard(Camera_Movement direction, float deltaTime);
         void processMouse(float xoffset, float yoffset, bool constrainPitch);
         void processScroll(float yoffset);
+        glm::vec3 getPosition() const;
         glm::mat4 getPerspectiveMatrix() const;
         glm::mat4 getViewMatrix() const;
 };
