@@ -63,6 +63,39 @@ void process_input(GLFWwindow* window) {
 		camera.processKeyboard(RIGHT, deltaTime);
 }
 
+unsigned int load_texture(char const *path) {
+	unsigned int texture;
+	glGenTextures(1, &texture);
+
+	int width, height, nrchannels;
+	stbi_set_flip_vertically_on_load(true);
+	unsigned char *data = stbi_load(path, &width, &height, &nrchannels, 0);
+	if (data) {
+		GLenum format;
+		if (nrchannels == 1)
+			format = GL_RED;
+		else if(nrchannels == 3)
+			format = GL_RGB;
+		else if(nrchannels == 4)
+			format = GL_RGBA;
+
+		glBindTexture(GL_TEXTURE_2D, texture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		stbi_image_free(data);
+	}
+	else {
+		std::cerr <<"texture non caricata"<<std::endl;
+	}
+	return texture;
+}
+
 int main() {
 	//inizializza glfw, imposta la versione a 3.3, forza utilizzo profilo core
 	glfwInit();
@@ -122,6 +155,8 @@ int main() {
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
+	unsigned int textureMap = load_texture("../resources/textures/container2/container2.png");
+	unsigned int specularMap = load_texture("../resources/textures/container2/container2_specular.png");
 	//render loop
 	//wireframe
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -139,21 +174,21 @@ int main() {
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		//cubo arancione
 		shader.use();
-		shader.setVec3("objectColor", glm::vec3(1.0f, 0.5f, 0.31f));
 		shader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
 
-		shader.setVec3("material.ambient", glm::vec3(1.0f, 0.5f, 0.31f));
-		shader.setVec3("material.diffuse", glm::vec3(1.0f, 0.5f, 0.31f));
-		shader.setVec3("material.specular", glm::vec3(0.5f, 0.5f, 0.5f));
+		shader.setInt("material.diffuse", 0);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, textureMap);
+
+		shader.setVec3("material.ambient", glm::vec3(1.0f, 1.0f, 1.0f));
+		shader.setVec3("material.specular", glm::vec3(1.0f, 1.0f, 1.0f));
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, specularMap);
+
 		shader.setFloat("material.shininess", 32.0f);
 
-		glm::vec3 lightColor;
-		lightColor.x = glm::sin(glfwGetTime() * 2.0f);
-		lightColor.y = glm::sin(glfwGetTime() * 0.7f);
-		lightColor.z = glm::sin(glfwGetTime() * 1.3f);
-
+		auto lightColor = glm::vec3(1.0f);
 		glm::vec3 diffuseColor = lightColor * 0.5f;
 		glm::vec3 ambientColor = lightColor * 0.2f;
 
@@ -163,6 +198,7 @@ int main() {
 
 		shader.setVec3("lightPos", lightPos);
 		shader.setVec3("viewPos", camera.getPosition());
+
 		auto model = glm::mat4(1.0f);
 		shader.setMat4("model", model);
 		shader.setMat4("projection", camera.getPerspectiveMatrix());
