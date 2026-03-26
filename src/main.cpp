@@ -143,6 +143,24 @@ int main() {
 		shader.use();
 		shader.setVec3("objectColor", glm::vec3(1.0f, 0.5f, 0.31f));
 		shader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+
+		shader.setVec3("material.ambient", glm::vec3(1.0f, 0.5f, 0.31f));
+		shader.setVec3("material.diffuse", glm::vec3(1.0f, 0.5f, 0.31f));
+		shader.setVec3("material.specular", glm::vec3(0.5f, 0.5f, 0.5f));
+		shader.setFloat("material.shininess", 32.0f);
+
+		glm::vec3 lightColor;
+		lightColor.x = glm::sin(glfwGetTime() * 2.0f);
+		lightColor.y = glm::sin(glfwGetTime() * 0.7f);
+		lightColor.z = glm::sin(glfwGetTime() * 1.3f);
+
+		glm::vec3 diffuseColor = lightColor * 0.5f;
+		glm::vec3 ambientColor = lightColor * 0.2f;
+
+		shader.setVec3("light.ambient", ambientColor);
+		shader.setVec3("light.diffuse", diffuseColor);
+		shader.setVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
+
 		shader.setVec3("lightPos", lightPos);
 		shader.setVec3("viewPos", camera.getPosition());
 		auto model = glm::mat4(1.0f);
