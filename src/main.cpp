@@ -181,7 +181,6 @@ int main() {
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, textureMap);
 
-		shader.setVec3("material.ambient", glm::vec3(1.0f, 1.0f, 1.0f));
 		shader.setVec3("material.specular", glm::vec3(1.0f, 1.0f, 1.0f));
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, specularMap);
@@ -196,7 +195,7 @@ int main() {
 		shader.setVec3("light.diffuse", diffuseColor);
 		shader.setVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
 
-		shader.setVec3("lightPos", lightPos);
+		shader.setVec3("light.position", lightPos);
 		shader.setVec3("viewPos", camera.getPosition());
 
 		auto model = glm::mat4(1.0f);

@@ -6,21 +6,17 @@ layout (location = 2) in vec3 aNormal;
 out vec2 TexCoord;
 out vec3 Normal;
 out vec3 FragPosition;
-out vec3 LightPosition;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
-uniform vec3 lightPos;
-
 void main()
 {
     gl_Position = projection * view * model * vec4(aPos, 1.0);
     //per l'illuminazione si usa le coordinate del mondo
-    FragPosition = vec3(view * model * vec4(aPos, 1.0));
+    FragPosition = vec3(model * vec4(aPos, 1.0));
     TexCoord = aTexCoord;
     //questa operazione è meglio fatta in cpu che in gpu
-    Normal = mat3(transpose(inverse(view * model))) * aNormal;
-    LightPosition = vec3(view * vec4(lightPos, 1.0));
-}     
+    Normal = mat3(transpose(inverse(model))) * aNormal;
+}
