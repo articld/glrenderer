@@ -53,6 +53,7 @@ class Camera {
         void processMouse(float xoffset, float yoffset, bool constrainPitch);
         void processScroll(float yoffset);
         glm::vec3 getPosition() const;
+        glm::vec3 getFront() const;
         glm::mat4 getPerspectiveMatrix() const;
         glm::mat4 getViewMatrix() const;
 };
