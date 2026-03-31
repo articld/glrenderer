@@ -120,7 +120,7 @@ int main() {
 		return -1;
 	}
 
-	Shader shader("../src/shaders/vertex.vs", "../src/shaders/fragment.fs");
+	Shader shader("../src/shaders/vertex.vs", "../src/shaders/fragment_point.fs");
 	Shader lightSource("../src/shaders/lightSource.vs", "../src/shaders/lightSource.fs");
 
 	glm::vec3 cubePositions []={
@@ -208,7 +208,13 @@ int main() {
 		shader.setVec3("light.diffuse", diffuseColor);
 		shader.setVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
 
-		shader.setVec3("light.direction", glm::vec3(-0.2f, -1.0f, -0.3f));
+		//shader.setVec3("light.direction", glm::vec3(-0.2f, -1.0f, -0.3f));
+		shader.setVec3("light.position", lightPos);
+
+		shader.setFloat("light.constant", 1.0f);
+		shader.setFloat("light.linear", 0.09f);
+		shader.setFloat("light.quadratic", 0.032f);
+
 		shader.setVec3("viewPos", camera.getPosition());
 
 		shader.setMat4("projection", camera.getPerspectiveMatrix());
