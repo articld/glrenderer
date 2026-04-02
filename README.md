@@ -21,3 +21,4 @@
 #include "../include/stb_image.h"
 ```
 - Installare glm con Vcpkg
+- Installare assimp con Vcpkg

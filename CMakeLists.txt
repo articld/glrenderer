@@ -25,10 +25,15 @@ add_executable(glrenderer
 		src/Shader.cpp
 		src/Shader.h
 		src/Camera.cpp
-		src/Camera.h)
+		src/Camera.h
+		src/Mesh.cpp
+		src/Mesh.h
+)
 
 find_package(OpenGL REQUIRED)
 find_package(glm CONFIG REQUIRED)
+find_package(assimp CONFIG REQUIRED)
+target_link_libraries(main PRIVATE assimp::assimp)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	target_link_libraries(glrenderer
