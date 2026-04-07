@@ -5,7 +5,7 @@
 
 #include <glm/glm.hpp>
 
-#include "Shader.h"
+#include "../Shader.h"
 
 struct Vertex {
     glm::vec3 position;
@@ -16,6 +16,7 @@ struct Vertex {
 struct Texture {
     unsigned int id;
     std::string type;
+    std::string path;
 };
 
 class Mesh {

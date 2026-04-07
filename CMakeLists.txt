@@ -26,14 +26,15 @@ add_executable(glrenderer
 		src/Shader.h
 		src/Camera.cpp
 		src/Camera.h
-		src/Mesh.cpp
-		src/Mesh.h
+		src/ModelImport/Mesh.cpp
+		src/ModelImport/Mesh.h
+		src/ModelImport/Model.cpp
+		src/ModelImport/Model.h
 )
 
 find_package(OpenGL REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(assimp CONFIG REQUIRED)
-target_link_libraries(main PRIVATE assimp::assimp)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	target_link_libraries(glrenderer
@@ -42,6 +43,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 		glad
 		opengl32
 		glm::glm-header-only
+		assimp::assimp
 	)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	target_link_libraries(glrenderer
@@ -50,6 +52,7 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		glad
 		GL
 		glm::glm-header-only
+		assimp::assimp
 	)
 endif()
 

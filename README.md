@@ -12,6 +12,8 @@
   - [Container](https://learnopengl.com/img/textures/container.jpg)
   - [Container 2](https://learnopengl.com/img/textures/container2.png)
   - [Container 2 Specular](https://learnopengl.com/img/textures/container2_specular.png)
+- Modelli
+  - [Survival Guitar Backpack](https://learnopengl.com/data/models/backpack.zip)
 
 ## Come compilare
 - Creare e copiare nella cartella libraries le librerie GLFW e glad. 
