@@ -8,6 +8,7 @@ unsigned int TextureFromFile(const char *path, const std::string &directory){
     glGenTextures(1, &textureID);
 
     int width, height, nrComponents;
+    stbi_set_flip_vertically_on_load(true);
     unsigned char *data = stbi_load(filename.c_str(), &width, &height, &nrComponents, 0);
     if (data)
     {
@@ -32,7 +33,7 @@ unsigned int TextureFromFile(const char *path, const std::string &directory){
     }
     else
     {
-        std::cout << "Texture failed to load at path: " << path << std::endl;
+        std::cerr<< "Texture failed to load at path: " << filename << std::endl;
         stbi_image_free(data);
     }
 
@@ -52,7 +53,7 @@ void Model::loadModel(std::string path) {
         std::cerr << "ERROR::ASSIMP::" << importer.GetErrorString() << std::endl;
         return;
     }
-    directory = path.substr(0, path.find_last_not_of('/'));
+    directory = path.substr(0, path.find_last_of('/'));
     processNode(scene->mRootNode, scene);
 }
 
@@ -115,11 +116,12 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene) {
 
 std::vector<Texture> Model::loadMaterialTextures(aiMaterial *mat, aiTextureType type, std::string typeName) {
     std::vector<Texture> textures;
+    unsigned int count = mat->GetTextureCount(type);
     for (unsigned int i = 0; i < mat->GetTextureCount(type); i++) {
         aiString str;
         mat->GetTexture(type, i, &str);
         bool skip = false;
-        for (unsigned int j = 0; j < textures.size(); j++) {
+        for (unsigned int j = 0; j < textures_loaded.size(); j++) {
             if (std::strcmp(textures_loaded[j].path.data(), str.C_Str()) == 0) {
                 textures.push_back(textures_loaded[j]);
                 skip = true;

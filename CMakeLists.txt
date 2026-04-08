@@ -37,7 +37,7 @@ find_package(glm CONFIG REQUIRED)
 find_package(assimp CONFIG REQUIRED)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-	target_link_libraries(glrenderer
+	target_link_libraries(glrenderer PRIVATE
 		stb_image
 		glfw
 		glad
@@ -46,7 +46,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 		assimp::assimp
 	)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-	target_link_libraries(glrenderer
+	target_link_libraries(glrenderer PRIVATE
 		stb_image
 		glfw
 		glad

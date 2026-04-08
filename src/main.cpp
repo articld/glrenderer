@@ -9,6 +9,7 @@
 
 #include "Camera.h"
 #include "Shader.h"
+#include "modelimport/model.h"
 #include "primitives/cube.h"
 
 constexpr int SCR_WIDTH = 800;
@@ -61,39 +62,6 @@ void process_input(GLFWwindow* window) {
 		camera.processKeyboard(RIGHT, deltaTime);
 }
 
-unsigned int load_texture(char const *path) {
-	unsigned int texture;
-	glGenTextures(1, &texture);
-
-	int width, height, nrchannels;
-	stbi_set_flip_vertically_on_load(true);
-	unsigned char *data = stbi_load(path, &width, &height, &nrchannels, 0);
-	if (data) {
-		GLenum format;
-		if (nrchannels == 1)
-			format = GL_RED;
-		else if(nrchannels == 3)
-			format = GL_RGB;
-		else if(nrchannels == 4)
-			format = GL_RGBA;
-
-		glBindTexture(GL_TEXTURE_2D, texture);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-		stbi_image_free(data);
-	}
-	else {
-		std::cerr <<"texture non caricata"<<std::endl;
-	}
-	return texture;
-}
-
 int main() {
 	//inizializza glfw, imposta la versione a 3.3, forza utilizzo profilo core
 	glfwInit();
@@ -119,62 +87,7 @@ int main() {
 	}
 
 	Shader shader("../src/shaders/vertex.vs", "../src/shaders/fragment.fs");
-	Shader lightSource("../src/shaders/lightSource.vs", "../src/shaders/lightSource.fs");
-
-	glm::vec3 cubePositions []={
-		glm::vec3( 0.0f,  0.0f,  0.0f),
-		glm::vec3( 2.0f,  5.0f, -15.0f),
-		glm::vec3(-1.5f, -2.2f, -2.5f),
-		glm::vec3(-3.8f, -2.0f, -12.3f),
-		glm::vec3( 2.4f, -0.4f, -3.5f),
-		glm::vec3(-1.7f,  3.0f, -7.5f),
-		glm::vec3( 1.3f, -2.0f, -2.5f),
-		glm::vec3( 1.5f,  2.0f, -2.5f),
-		glm::vec3( 1.5f,  0.2f, -1.5f),
-		glm::vec3(-1.3f,  1.0f, -1.5f)
-	};
-
-	glm::vec3 pointLightsPosition []={
-		glm::vec3( 0.7f,  0.2f,  2.0f),
-		glm::vec3( 2.3f, -3.3f, -4.0f),
-		glm::vec3(-4.0f,  2.0f, -12.0f),
-		glm::vec3( 0.0f,  0.0f, -3.0f)
-	};
-
-	//vertex buffer objects. Dove vengono memorizzati i vertici per poi essere spediti in gpu
-	//vertex array object:dove vengono memorizzati gli attributi dei vertici
-	//element buffer object: memorizza gli indici dei triangoli
-	unsigned int VBO, cubeVAO;
-	glGenVertexArrays(1, &cubeVAO);
-	glGenBuffers(1, &VBO);
-
-	glBindVertexArray(cubeVAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(cube), cube, GL_STATIC_DRAW);
-
-	//collega il VBO con gli ingressi dello shader
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	//dati texture
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3*sizeof(float)));
-	glEnableVertexAttribArray(1);
-
-	//dati normali
-	glVertexAttribPointer(2,3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(5*sizeof(float)));
-	glEnableVertexAttribArray(2);
-
-
-	unsigned int lightCubeVAO;
-	glGenVertexArrays(1, &lightCubeVAO);
-	glBindVertexArray(lightCubeVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	unsigned int textureMap = load_texture("../resources/textures/container2/container2.png");
-	unsigned int specularMap = load_texture("../resources/textures/container2/container2_specular.png");
+	Model backpack("../resources/models/backpack/backpack.obj");
 	//render loop
 	//wireframe
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -193,107 +106,20 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		shader.use();
-		shader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
-
-		shader.setInt("material.diffuse", 0);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, textureMap);
-
-		shader.setVec3("material.specular", glm::vec3(1.0f, 1.0f, 1.0f));
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, specularMap);
-
-		shader.setFloat("material.shininess", 32.0f);
-
-		auto lightColor = glm::vec3(1.0f);
-		glm::vec3 diffuseColor = lightColor * 0.5f;
-		glm::vec3 ambientColor = lightColor * 0.2f;
-		// directional light
-        shader.setVec3("dirLight.direction",-0.2f, -1.0f, -0.3f);
-        shader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
-        shader.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
-        shader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
-        // point light 1
-        shader.setVec3("pointLights[0].position", pointLightsPosition[0]);
-        shader.setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f);
-        shader.setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
-        shader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
-        shader.setFloat("pointLights[0].constant", 1.0f);
-        shader.setFloat("pointLights[0].linear", 0.09f);
-        shader.setFloat("pointLights[0].quadratic", 0.032f);
-        // point light 2
-        shader.setVec3("pointLights[1].position", pointLightsPosition[1]);
-        shader.setVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f);
-        shader.setVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f);
-        shader.setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f);
-        shader.setFloat("pointLights[1].constant", 1.0f);
-        shader.setFloat("pointLights[1].linear", 0.09f);
-        shader.setFloat("pointLights[1].quadratic", 0.032f);
-        // point light 3
-        shader.setVec3("pointLights[2].position", pointLightsPosition[2]);
-        shader.setVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
-        shader.setVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f);
-        shader.setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f);
-        shader.setFloat("pointLights[2].constant", 1.0f);
-        shader.setFloat("pointLights[2].linear", 0.09f);
-        shader.setFloat("pointLights[2].quadratic", 0.032f);
-        // point light 4
-        shader.setVec3("pointLights[3].position", pointLightsPosition[3]);
-        shader.setVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
-        shader.setVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f);
-        shader.setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f);
-        shader.setFloat("pointLights[3].constant", 1.0f);
-        shader.setFloat("pointLights[3].linear", 0.09f);
-        shader.setFloat("pointLights[3].quadratic", 0.032f);
-        // spotLight
-        shader.setVec3("spotLight.position", camera.getPosition());
-        shader.setVec3("spotLight.direction", camera.getFront());
-        shader.setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
-        shader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
-        shader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
-        shader.setFloat("spotLight.constant", 1.0f);
-        shader.setFloat("spotLight.linear", 0.09f);
-        shader.setFloat("spotLight.quadratic", 0.032f);
-        shader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
-        shader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
-
 		shader.setVec3("viewPos", camera.getPosition());
-
 		shader.setMat4("projection", camera.getPerspectiveMatrix());
 		shader.setMat4("view", camera.getViewMatrix());
 
-		glBindVertexArray(cubeVAO);
-		for (unsigned int i = 0; i < 10; i++) {
-			auto model = glm::mat4(1.0f);
-			model = glm::translate(model, cubePositions[i]);
-			float angle = 20.0f * i;
-			model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-			shader.setMat4("model", model);
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-		}
-
-
-		lightSource.use();
-		glBindVertexArray(lightCubeVAO);
-		for (int i = 0; i < 4; i++) {
-			auto model = glm::mat4(1.0f);
-			model = glm::translate(model, pointLightsPosition[i]);
-			model = glm::scale(model, glm::vec3(0.2f));
-			lightSource.setMat4("model", model);
-			lightSource.setMat4("projection", camera.getPerspectiveMatrix());
-			lightSource.setMat4("view", camera.getViewMatrix());
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-		}
+		glm::mat4 model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
+		model = glm::scale(model, glm::vec3(1.0f));
+		shader.setMat4("model", model);
+		backpack.Draw(shader);
 
 		//cambio buffer
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
-
-	glDeleteVertexArrays(1, &cubeVAO);
-	glDeleteVertexArrays(1, &lightCubeVAO);
-	glDeleteBuffers(1, &VBO);
-
 	glfwTerminate();
 	return 0;
 }
