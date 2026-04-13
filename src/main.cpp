@@ -15,6 +15,7 @@
 #include "primitives/verticalplane.h"
 
 #include <iostream>
+#include <map>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -79,6 +80,8 @@ int main(){
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDepthFunc(GL_LESS); // always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
 
     // build and compile shaders
@@ -126,7 +129,7 @@ int main(){
 
     unsigned int cubeTexture  = loadTexture("../resources/textures/marble.jpg");
     unsigned int floorTexture = loadTexture("../resources/textures/metal.png");
-    unsigned int plantTexture = loadTexture("../resources/textures/grass.png");
+    unsigned int plantTexture = loadTexture("../resources/textures/blending_transparent_window.png");
 
     shader.use();
     shader.setInt("texture1", 0);
@@ -163,11 +166,17 @@ int main(){
         shader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
+        std::map<float, glm::vec3> sorted;
+        for (unsigned int i = 0; i < 5; i++) {
+            float distance = glm::length(camera.getPosition() - vegetationPosition[i]);
+            sorted[distance] = vegetationPosition[i];
+        }
+
         glBindVertexArray(plantVAO);
         glBindTexture(GL_TEXTURE_2D, plantTexture);
-        for (unsigned int i = 0; i < 5; i++) {
+        for (auto it = sorted.rbegin(); it != sorted.rend(); ++it) {
             model = glm::mat4(1.0f);
-            model = glm::translate(model, vegetationPosition[i]);
+            model = glm::translate(model, it->second);
             color.setMat4("model", model);
             glDrawArrays(GL_TRIANGLES, 0, 6);
         }
