@@ -36,6 +36,7 @@ add_executable(glrenderer
 		src/ModelImport/Model.cpp
 		src/ModelImport/Model.h
 		src/primitives/plane.h
+		src/primitives/verticalplane.h
 )
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	target_link_libraries(glrenderer PRIVATE
