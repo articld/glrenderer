@@ -38,6 +38,7 @@ add_executable(glrenderer
 		src/primitives/plane.h
 		src/primitives/verticalplane.h
 		src/primitives/framebufferfill.h
+		src/primitives/skybox.h
 )
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	target_link_libraries(glrenderer PRIVATE
