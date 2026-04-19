@@ -99,6 +99,7 @@ int main() {
     // build and compile shaders
     // -------------------------
     Shader shader("../src/shaders/vertex.vs", "../src/shaders/fragment.fs");
+    Shader mirror("../src/shaders/mirror.vs", "../src/shaders/mirror.fs");
     Shader skyboxShader("../src/shaders/cubemap.vs", "../src/shaders/cubemap.fs");
 
     // cube VAO
@@ -112,6 +113,8 @@ int main() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(5 * sizeof(float)));
     glBindVertexArray(0);
 
     // plane VAO
@@ -155,6 +158,7 @@ int main() {
 
     unsigned int cubemapTexture = loadCubemap(texture_faces);
 
+    glDepthFunc(GL_LEQUAL);
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     while(!glfwWindowShouldClose(window)){
         float currentFrame = static_cast<float>(glfwGetTime());
@@ -167,16 +171,6 @@ int main() {
 
         glm::mat4 view = camera.getViewMatrix();
         glm::mat4 projection = camera.getPerspectiveMatrix();
-
-        glDepthMask(GL_FALSE);
-        skyboxShader.use();
-        skyboxShader.setMat4("view", glm::mat4(glm::mat3(view)));
-        skyboxShader.setMat4("projection", projection);
-        glBindVertexArray(skyboxVAO);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glDepthMask(GL_TRUE);
-
         shader.use();
         shader.setMat4("view", view);
         shader.setMat4("projection", projection);
@@ -192,11 +186,18 @@ int main() {
         model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
         shader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        mirror.use();
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+        mirror.setMat4("projection", projection);
+        mirror.setMat4("view", view);
+        mirror.setVec3("cameraPos", camera.getPosition());
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-        shader.setMat4("model", model);
+        mirror.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
+        shader.use();
         std::map<float, glm::vec3> sorted;
         for (unsigned int i = 0; i < 5; i++) {
             float distance = glm::length(camera.getPosition() - vegetationPosition[i]);
@@ -212,6 +213,12 @@ int main() {
             glDrawArrays(GL_TRIANGLES, 0, 6);
         }
 
+        skyboxShader.use();
+        skyboxShader.setMat4("view", glm::mat4(glm::mat3(view)));
+        skyboxShader.setMat4("projection", projection);
+        glBindVertexArray(skyboxVAO);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
