@@ -158,6 +158,19 @@ int main() {
 
     unsigned int cubemapTexture = loadCubemap(texture_faces);
 
+    unsigned int uniformBlockIndexVertex = glGetUniformBlockIndex(shader.ID, "Matrices");
+    unsigned int uniformBlockIndexMirror = glGetUniformBlockIndex(mirror.ID, "Matrices");
+
+    glUniformBlockBinding(shader.ID, uniformBlockIndexVertex, 0);
+    glUniformBlockBinding(mirror.ID, uniformBlockIndexMirror, 0);
+
+    unsigned int uboMatrices;
+    glGenBuffers(1, &uboMatrices);
+    glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
+    glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), NULL, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, uboMatrices, 0, 2 * sizeof(glm::mat4));
+
     glDepthFunc(GL_LEQUAL);
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     while(!glfwWindowShouldClose(window)){
@@ -169,11 +182,15 @@ int main() {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glm::mat4 view = camera.getViewMatrix();
         glm::mat4 projection = camera.getPerspectiveMatrix();
+        glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
+        glm::mat4 view = camera.getViewMatrix();
+        glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
+        glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) , sizeof(glm::mat4), glm::value_ptr(view));
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
         shader.use();
-        shader.setMat4("view", view);
-        shader.setMat4("projection", projection);
         // floor
         glBindVertexArray(planeVAO);
         glBindTexture(GL_TEXTURE_2D, floorTexture);
@@ -189,8 +206,6 @@ int main() {
 
         mirror.use();
         glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-        mirror.setMat4("projection", projection);
-        mirror.setMat4("view", view);
         mirror.setVec3("cameraPos", camera.getPosition());
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
