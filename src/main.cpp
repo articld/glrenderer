@@ -78,7 +78,7 @@ int main() {
 
     // build and compile shaders
     // -------------------------
-    Shader shader("../src/shaders/vertex.vs", "../src/shaders/fragment.fs");
+    Shader shader("../src/shaders/model.vs", "../src/shaders/model.gs", "../src/shaders/model.fs");
     Model backpack ("../resources/models/backpack/backpack.obj");
 
     unsigned int uniformBlockIndexVertex = glGetUniformBlockIndex(shader.ID, "Matrices");
@@ -114,6 +114,7 @@ int main() {
         shader.use();
         auto model = glm::mat4(1.0f);
         shader.setMat4("model", model);
+        shader.setFloat("time", glfwGetTime());
         backpack.Draw(shader);
 
         glfwSwapBuffers(window);
