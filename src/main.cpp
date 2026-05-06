@@ -78,12 +78,15 @@ int main() {
 
     // build and compile shaders
     // -------------------------
-    Shader shader("../src/shaders/model.vs", "../src/shaders/model.gs", "../src/shaders/model.fs");
+    Shader shader("../src/shaders/model.vs","../src/shaders/model.fs");
+    Shader displayNormal ("../src/shaders/model.vs", "../src/shaders/model.gs", "../src/shaders/singlecolor.fs");
     Model backpack ("../resources/models/backpack/backpack.obj");
 
-    unsigned int uniformBlockIndexVertex = glGetUniformBlockIndex(shader.ID, "Matrices");
+    unsigned int shaderUniformBlockIndexVertex = glGetUniformBlockIndex(shader.ID, "Matrices");
+    unsigned int displayNormalUniformBlockIndexVertex = glGetUniformBlockIndex(displayNormal.ID, "Matrices");
 
-    glUniformBlockBinding(shader.ID, uniformBlockIndexVertex, 0);
+    glUniformBlockBinding(shader.ID, shaderUniformBlockIndexVertex, 0);
+    glUniformBlockBinding(displayNormal.ID, displayNormalUniformBlockIndexVertex, 0);
 
     unsigned int uboMatrices;
     glGenBuffers(1, &uboMatrices);
@@ -114,8 +117,11 @@ int main() {
         shader.use();
         auto model = glm::mat4(1.0f);
         shader.setMat4("model", model);
-        shader.setFloat("time", glfwGetTime());
         backpack.Draw(shader);
+
+        displayNormal.use();
+        displayNormal.setMat4("model", model);
+        backpack.Draw(displayNormal);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

@@ -1,6 +1,12 @@
 #version 330 core
 out vec4 FragColor;
 
+in VS_OUT{
+    vec2 texCoords;
+    vec3 normal;
+    vec3 FragPosition;
+}fs_in;
+
 in vec2 TexCoord;
 in vec3 Normal;
 in vec3 FragPosition;
@@ -71,7 +77,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 
 void main()
 {
-    FragColor = texture(material.texture_diffuse1, TexCoord);
+    FragColor = texture(material.texture_diffuse1, fs_in.texCoords);
 }
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir){
