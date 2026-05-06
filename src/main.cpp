@@ -3,20 +3,21 @@
 #include <stb_image.h>
 
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 #include "Shader.h"
 #include "Camera.h"
 #include "modelimport/model.h"
 
+/*
 #include "primitives/cube.h"
 #include "primitives/plane.h"
 #include "primitives/verticalplane.h"
 #include "primitives/skybox.h"
+*/
 
 #include <iostream>
-#include <map>
+//#include <map>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -70,99 +71,19 @@ int main() {
         return -1;
     }
 
-
-    glm::vec3 vegetationPosition [] ={
-        glm::vec3(-1.5f,  0.0f, -0.48f),
-        glm::vec3(1.5f,  0.0f,  0.51f),
-        glm::vec3(0.0f,  0.0f,  0.7f),
-        glm::vec3(-0.3f,  0.0f, -2.3f),
-        glm::vec3(0.5f,  0.0f, -0.6f)
-    };
-
-    std::vector<std::string> texture_faces = {
-        "../resources/textures/skybox/right.jpg",
-        "../resources/textures/skybox/left.jpg",
-        "../resources/textures/skybox/top.jpg",
-        "../resources/textures/skybox/bottom.jpg",
-        "../resources/textures/skybox/front.jpg",
-        "../resources/textures/skybox/back.jpg"
-    };
-
-    // configure global opengl state
-    // -----------------------------
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDepthFunc(GL_LESS); // always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
     glEnable(GL_CULL_FACE);
 
     // build and compile shaders
     // -------------------------
     Shader shader("../src/shaders/vertex.vs", "../src/shaders/fragment.fs");
-    Shader mirror("../src/shaders/mirror.vs", "../src/shaders/mirror.fs");
-    Shader skyboxShader("../src/shaders/cubemap.vs", "../src/shaders/cubemap.fs");
-
-    // cube VAO
-    unsigned int cubeVAO, cubeVBO;
-    glGenVertexArrays(1, &cubeVAO);
-    glGenBuffers(1, &cubeVBO);
-    glBindVertexArray(cubeVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cube), &cube, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(5 * sizeof(float)));
-    glBindVertexArray(0);
-
-    // plane VAO
-    unsigned int planeVAO, planeVBO;
-    glGenVertexArrays(1, &planeVAO);
-    glGenBuffers(1, &planeVBO);
-    glBindVertexArray(planeVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(plane), &plane, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    glBindVertexArray(0);
-
-    unsigned int plantVAO, plantVBO;
-    glGenVertexArrays(1, &plantVAO);
-    glGenBuffers(1, &plantVBO);
-    glBindVertexArray(plantVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, plantVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(verticalplane), &verticalplane, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    glBindVertexArray(0);
-
-    unsigned int skyboxVAO, skyboxVBO;
-    glGenVertexArrays(1, &skyboxVAO);
-    glGenBuffers(1, &skyboxVBO);
-    glBindVertexArray(skyboxVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(skybox), &skybox, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glBindVertexArray(0);
-
-    unsigned int cubeTexture  = loadTexture("../resources/textures/marble.jpg");
-    unsigned int floorTexture = loadTexture("../resources/textures/metal.png");
-    unsigned int plantTexture = loadTexture("../resources/textures/blending_transparent_window.png");
-
-    unsigned int cubemapTexture = loadCubemap(texture_faces);
+    Model backpack ("../resources/models/backpack/backpack.obj");
 
     unsigned int uniformBlockIndexVertex = glGetUniformBlockIndex(shader.ID, "Matrices");
-    unsigned int uniformBlockIndexMirror = glGetUniformBlockIndex(mirror.ID, "Matrices");
 
     glUniformBlockBinding(shader.ID, uniformBlockIndexVertex, 0);
-    glUniformBlockBinding(mirror.ID, uniformBlockIndexMirror, 0);
 
     unsigned int uboMatrices;
     glGenBuffers(1, &uboMatrices);
@@ -191,62 +112,13 @@ int main() {
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
         shader.use();
-        // floor
-        glBindVertexArray(planeVAO);
-        glBindTexture(GL_TEXTURE_2D, floorTexture);
-        shader.setMat4("model", glm::mat4(1.0f));
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-
         auto model = glm::mat4(1.0f);
-        glBindVertexArray(cubeVAO);
-        glBindTexture(GL_TEXTURE_2D, cubeTexture);
-        model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
         shader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-
-        mirror.use();
-        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-        mirror.setVec3("cameraPos", camera.getPosition());
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-        mirror.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-
-        shader.use();
-        std::map<float, glm::vec3> sorted;
-        for (unsigned int i = 0; i < 5; i++) {
-            float distance = glm::length(camera.getPosition() - vegetationPosition[i]);
-            sorted[distance] = vegetationPosition[i];
-        }
-
-        glBindVertexArray(plantVAO);
-        glBindTexture(GL_TEXTURE_2D, plantTexture);
-        for (auto it = sorted.rbegin(); it != sorted.rend(); ++it) {
-            model = glm::mat4(1.0f);
-            model = glm::translate(model, it->second);
-            shader.setMat4("model", model);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-        }
-
-        skyboxShader.use();
-        skyboxShader.setMat4("view", glm::mat4(glm::mat3(view)));
-        skyboxShader.setMat4("projection", projection);
-        glBindVertexArray(skyboxVAO);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        backpack.Draw(shader);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
-    // optional: de-allocate all resources once they've outlived their purpose:
-    // ------------------------------------------------------------------------
-    glDeleteVertexArrays(1, &cubeVAO);
-    glDeleteVertexArrays(1, &planeVAO);
-    glDeleteVertexArrays(1, &plantVAO);
-    glDeleteBuffers(1, &cubeVBO);
-    glDeleteBuffers(1, &planeVBO);
-    glDeleteBuffers(1, &plantVBO);
 
     glfwTerminate();
     return 0;
