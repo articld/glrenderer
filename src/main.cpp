@@ -63,6 +63,7 @@ int main() {
 
     // tell GLFW to capture our mouse
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwWindowHint(GLFW_SAMPLES, 16);
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
@@ -75,18 +76,19 @@ int main() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_CULL_FACE);
+    glEnable(GL_MULTISAMPLE);
 
     // build and compile shaders
     // -------------------------
     Shader shader("../src/shaders/model.vs","../src/shaders/model.fs");
-    Shader displayNormal ("../src/shaders/model.vs", "../src/shaders/model.gs", "../src/shaders/singlecolor.fs");
+    //Shader displayNormal ("../src/shaders/model.vs", "../src/shaders/model.gs", "../src/shaders/singlecolor.fs");
     Model backpack ("../resources/models/backpack/backpack.obj");
 
     unsigned int shaderUniformBlockIndexVertex = glGetUniformBlockIndex(shader.ID, "Matrices");
-    unsigned int displayNormalUniformBlockIndexVertex = glGetUniformBlockIndex(displayNormal.ID, "Matrices");
+    //unsigned int displayNormalUniformBlockIndexVertex = glGetUniformBlockIndex(displayNormal.ID, "Matrices");
 
     glUniformBlockBinding(shader.ID, shaderUniformBlockIndexVertex, 0);
-    glUniformBlockBinding(displayNormal.ID, displayNormalUniformBlockIndexVertex, 0);
+    //glUniformBlockBinding(displayNormal.ID, displayNormalUniformBlockIndexVertex, 0);
 
     unsigned int uboMatrices;
     glGenBuffers(1, &uboMatrices);
@@ -119,9 +121,9 @@ int main() {
         shader.setMat4("model", model);
         backpack.Draw(shader);
 
-        displayNormal.use();
-        displayNormal.setMat4("model", model);
-        backpack.Draw(displayNormal);
+        //displayNormal.use();
+        //displayNormal.setMat4("model", model);
+        //backpack.Draw(displayNormal);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
