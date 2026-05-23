@@ -7,10 +7,6 @@ in VS_OUT{
     vec3 FragPosition;
 }fs_in;
 
-in vec2 TexCoord;
-in vec3 Normal;
-in vec3 FragPosition;
-
 uniform vec3 viewPos;
 
 //deve essere definito in un uniform, altrimenti da errore
@@ -77,23 +73,31 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 
 void main()
 {
-    FragColor = texture(material.texture_diffuse1, fs_in.texCoords);
+    vec3 norm = normalize(fs_in.normal);
+    vec3 viewDirection = normalize(viewPos - fs_in.FragPosition);
+
+    vec3 result = CalcDirLight(dirLight, norm , viewDirection);
+    for(int i = 0; i < NR_POINT_LIGHTS; i++)
+        result += CalcPointLight(pointLights[i], norm, fs_in.FragPosition, viewDirection);
+
+    result += CalcSpotLight(spotLight, norm, fs_in.FragPosition, viewDirection);
+
+    FragColor = vec4(result, 1.0);
 }
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir){
     vec3 lightDir = normalize(-light.direction);
     //ambient
-    vec3 ambient = light.ambient * vec3(texture(material.texture_diffuse1, TexCoord));
+    vec3 ambient = light.ambient * vec3(texture(material.texture_diffuse1, fs_in.texCoords));
 
     //diffuse
     float diff = max(dot(normal, lightDir), 0.0);
-    vec3 diffuse = diff * light.diffuse * vec3(texture(material.texture_diffuse1, TexCoord));
+    vec3 diffuse = diff * light.diffuse * vec3(texture(material.texture_diffuse1, fs_in.texCoords));
 
-    //specular, calcolo la riflessione della luce dot posizione camera
-    //reflect si aspetta che il primo vettore punti dalla sorgente di luce alla posizione del fragment
-    vec3 reflectDirection = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDirection), 0.0), material.shininess);
-    vec3 specular = vec3(texture(material.texture_specular1, TexCoord)) * spec * light.specular;
+    //uso il modello di shading di blinn phong
+    vec3 halfwayDir = normalize(lightDir + viewDir);
+    float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
+    vec3 specular = vec3(texture(material.texture_specular1, fs_in.texCoords)) * spec * light.specular;
 
     return (ambient + diffuse + specular);
 }
@@ -103,18 +107,18 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir){
     float attenuation = 1.0/(light.constant + light.linear * distance +
                               light.quadratic * (distance * distance));
     //ambient
-    vec3 ambient = light.ambient * vec3(texture(material.texture_diffuse1, TexCoord));
+    vec3 ambient = light.ambient * vec3(texture(material.texture_diffuse1, fs_in.texCoords));
 
     //diffuse
-    vec3 lightDir = normalize(light.position - FragPosition);
+    vec3 lightDir = normalize(light.position - fs_in.FragPosition);
     float diff = max(dot(normal, lightDir), 0.0);
-    vec3 diffuse = diff * light.diffuse * vec3(texture(material.texture_diffuse1, TexCoord));
+    vec3 diffuse = diff * light.diffuse * vec3(texture(material.texture_diffuse1, fs_in.texCoords));
 
     //specular, calcolo la riflessione della luce dot posizione camera
     //reflect si aspetta che il primo vettore punti dalla sorgente di luce alla posizione del fragment
-    vec3 reflectDirection = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDirection), 0.0), material.shininess);
-    vec3 specular = vec3(texture(material.texture_specular1, TexCoord)) * spec * light.specular;
+    vec3 halfwayDir = normalize(lightDir + viewDir);
+    float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
+    vec3 specular = vec3(texture(material.texture_specular1, fs_in.texCoords)) * spec * light.specular;
 
     ambient *= attenuation;
     diffuse *= attenuation;
@@ -134,18 +138,15 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir){
     float intensity = clamp((theta - light.fallOff) / epsilon, 0.0, 1.0);
 
     //ambient
-    vec3 ambient = light.ambient * vec3(texture(material.texture_diffuse1, TexCoord));
+    vec3 ambient = light.ambient * vec3(texture(material.texture_diffuse1, fs_in.texCoords));
 
     //diffuse
     float diff = max(dot(normal, lightDir), 0.0);
-    vec3 diffuse = diff * light.diffuse * vec3(texture(material.texture_diffuse1, TexCoord));
+    vec3 diffuse = diff * light.diffuse * vec3(texture(material.texture_diffuse1, fs_in.texCoords));
 
-    //specular, calcolo la riflessione della luce dot posizione camera
-    vec3 viewDirection = normalize(viewPos - fragPos);
-    //reflect si aspetta che il primo vettore punti dalla sorgente di luce alla posizione del fragment
-    vec3 reflectDirection = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDirection), 0.0), material.shininess);
-    vec3 specular = vec3(texture(material.texture_specular1, TexCoord)) * spec * light.specular;
+    vec3 halfwayDir = normalize(lightDir + viewDir);
+    float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
+    vec3 specular = vec3(texture(material.texture_specular1, fs_in.texCoords)) * spec * light.specular;
 
     ambient *= attenuation;
     diffuse *= attenuation;
