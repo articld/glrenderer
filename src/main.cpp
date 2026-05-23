@@ -23,8 +23,10 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
+/*
 unsigned int loadTexture(const char *path);
 unsigned int loadCubemap(std::vector<std::string> texture_faces);
+*/
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -113,6 +115,8 @@ int main() {
         lastFrame = currentFrame;
         processInput(window);
 
+        glDisable(GL_FRAMEBUFFER_SRGB);
+
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -182,6 +186,7 @@ int main() {
 
         auto model = glm::mat4(1.0f);
         shader.setMat4("model", model);
+        glEnable(GL_FRAMEBUFFER_SRGB);
         backpack.Draw(shader);
 
         //displayNormal.use();
@@ -253,6 +258,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 
 // utility function for loading a 2D texture from file
 // ---------------------------------------------------
+/*
 unsigned int loadTexture(char const *path)
 {
     unsigned int textureID;
@@ -324,4 +330,4 @@ unsigned int loadCubemap(std::vector<std::string> texture_faces) {
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     return cubemapID;
 }
-
+*/

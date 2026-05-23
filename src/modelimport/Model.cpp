@@ -1,6 +1,6 @@
 #include "Model.h"
 
-unsigned int TextureFromFile(const char *path, const std::string &directory){
+unsigned int TextureFromFile(const char *path, const std::string &directory, const bool isSRGB){
     std::string filename = std::string(path);
     filename = directory + '/' + filename;
 
@@ -12,16 +12,36 @@ unsigned int TextureFromFile(const char *path, const std::string &directory){
     unsigned char *data = stbi_load(filename.c_str(), &width, &height, &nrComponents, 0);
     if (data)
     {
-        GLenum format;
-        if (nrComponents == 1)
+        GLenum internalformat, format;
+        if (nrComponents == 1) {
+            internalformat = GL_RED;
             format = GL_RED;
-        else if (nrComponents == 3)
-            format = GL_RGB;
-        else if (nrComponents == 4)
-            format = GL_RGBA;
+        }
+        else if (nrComponents == 3) {
+            if (isSRGB) {
+                internalformat = GL_SRGB;
+                format = GL_RGB;
+
+            }
+            else {
+                internalformat = GL_RGB;
+                format = GL_RGB;
+            }
+        }
+        else if (nrComponents == 4) {
+            if (isSRGB) {
+                internalformat = GL_SRGB_ALPHA;
+                format = GL_RGBA;
+            }
+            else {
+                internalformat = GL_RGBA;
+                format = GL_RGBA;
+            }
+        }
+
 
         glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, internalformat, width, height, 0, format, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -130,7 +150,7 @@ std::vector<Texture> Model::loadMaterialTextures(aiMaterial *mat, aiTextureType 
         }
         if (!skip){
             Texture texture;
-            texture.id = TextureFromFile(str.C_Str(), directory);
+            texture.id = TextureFromFile(str.C_Str(), directory, type == aiTextureType_DIFFUSE);
             texture.type = typeName;
             texture.path = str.C_Str();
             textures.push_back(texture);
