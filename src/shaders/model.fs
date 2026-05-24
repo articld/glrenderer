@@ -5,6 +5,7 @@ in VS_OUT{
     vec2 texCoords;
     vec3 normal;
     vec3 FragPosition;
+    vec4 FragPosLightSpace;
 }fs_in;
 
 uniform vec3 viewPos;
@@ -66,23 +67,18 @@ struct SpotLight{
 };
 uniform SpotLight spotLight;
 
+uniform sampler2D shadowMap;
 
-vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir);
-vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
-vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
+float ShadowCalculation(vec4 fragPosLightSpace){
+    //divisione prospettica. Non serve per il caso in cui si usi una proiezione ortogonale
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    //passo da coordinate NDC [-1, 1] a coordiante in [0, 1]
+    projCoords = projCoords * 0.5 + 0.5;
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
 
-void main()
-{
-    vec3 norm = normalize(fs_in.normal);
-    vec3 viewDirection = normalize(viewPos - fs_in.FragPosition);
-
-    vec3 result = CalcDirLight(dirLight, norm , viewDirection);
-    for(int i = 0; i < NR_POINT_LIGHTS; i++)
-        result += CalcPointLight(pointLights[i], norm, fs_in.FragPosition, viewDirection);
-
-    result += CalcSpotLight(spotLight, norm, fs_in.FragPosition, viewDirection);
-
-    FragColor = vec4(result, 1.0);
+    float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
+    return shadow;
 }
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir){
@@ -99,7 +95,10 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir){
     float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
     vec3 specular = vec3(texture(material.texture_specular1, fs_in.texCoords)) * spec * light.specular;
 
-    return (ambient + diffuse + specular);
+    float shadow = ShadowCalculation(fs_in.FragPosLightSpace);
+    vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular));
+
+    return lighting;
 }
 
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir){
@@ -157,4 +156,18 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir){
     specular *= intensity;
 
     return (ambient + diffuse + specular);
+}
+
+void main()
+{
+    vec3 norm = normalize(fs_in.normal);
+    vec3 viewDirection = normalize(viewPos - fs_in.FragPosition);
+
+    vec3 result = CalcDirLight(dirLight, norm , viewDirection);
+    for(int i = 0; i < NR_POINT_LIGHTS; i++)
+        result += CalcPointLight(pointLights[i], norm, fs_in.FragPosition, viewDirection);
+
+    result += CalcSpotLight(spotLight, norm, fs_in.FragPosition, viewDirection);
+
+    FragColor = vec4(result, 1.0);
 }

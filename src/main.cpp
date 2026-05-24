@@ -17,6 +17,8 @@
 */
 
 #include <iostream>
+
+#include "primitives/plane.h"
 //#include <map>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -83,6 +85,8 @@ int main() {
     // build and compile shaders
     // -------------------------
     Shader shader("../src/shaders/model.vs","../src/shaders/model.fs");
+    Shader singlecolor("../src/shaders/model.vs", "../src/shaders/singlecolor.fs");
+    Shader shadowmapping("../src/shaders/shadowmap.vs", "../src/shaders/shadowmap.fs");
     //Shader displayNormal ("../src/shaders/model.vs", "../src/shaders/model.gs", "../src/shaders/singlecolor.fs");
     Model backpack ("../resources/models/backpack/backpack.obj");
 
@@ -107,18 +111,80 @@ int main() {
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     glBindBufferRange(GL_UNIFORM_BUFFER, 0, uboMatrices, 0, 2 * sizeof(glm::mat4));
 
+    unsigned int planeVAO, planeVBO;
+    glGenVertexArrays(1, &planeVAO);
+    glGenBuffers(1, &planeVBO);
+    glBindVertexArray(planeVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(plane), &plane, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glBindVertexArray(0);
+
+    unsigned int depthMapFBO;
+    glGenFramebuffers(1, &depthMapFBO);
+
+    //shadowmapping
+    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+    unsigned int depthMap;
+    glGenTextures(1, &depthMap);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
     glDepthFunc(GL_LEQUAL);
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    shader.use();
+    shader.setInt("shadowMap", 6);
+    singlecolor.use();
+    singlecolor.setInt("shadowMap", 6);
+
+    glm::vec3 dirLightPosition(-2.0f, 4.0f, -1.0f);
+
     while(!glfwWindowShouldClose(window)){
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         processInput(window);
-
         glDisable(GL_FRAMEBUFFER_SRGB);
 
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glViewport(0,0, SHADOW_WIDTH, SHADOW_HEIGHT);
+        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+        glClear(GL_DEPTH_BUFFER_BIT);
+        float nearplane = 1.0f, farplane = 10.0f;
+        glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, nearplane, farplane);
+        glm::mat4 lightView = glm::lookAt(dirLightPosition,
+                                        glm ::vec3(0.0f, 0.0f, 0.0f),
+                                           glm::vec3(0.0f, 1.0f, 0.0f));
+
+        glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+        shadowmapping.use();
+        shadowmapping.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+
+        //non ho voglia di estrarlo a funzione quindi me lo faccio andar bene
+        auto model = glm::mat4(1.0f);
+        shadowmapping.setMat4("model", model);
+        backpack.Draw(shadowmapping);
+        model = glm::translate(model, glm::vec3(0.0f, -1.3f, 0.0f));
+        shadowmapping.setMat4("model", model);
+        glBindVertexArray(planeVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(0,0, SCR_WIDTH, SCR_HEIGHT);
 
         glm::mat4 projection = camera.getPerspectiveMatrix();
         glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
@@ -128,7 +194,9 @@ int main() {
         glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) , sizeof(glm::mat4), glm::value_ptr(view));
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-		shader.use();
+        glActiveTexture(GL_TEXTURE6);
+        glBindTexture(GL_TEXTURE_2D, depthMap);
+        shader.use();
 		shader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
 		shader.setFloat("material.shininess", 32.0f);
 
@@ -136,7 +204,7 @@ int main() {
 		glm::vec3 diffuseColor = lightColor * 0.5f;
 		glm::vec3 ambientColor = lightColor * 0.2f;
 		// directional light
-        shader.setVec3("dirLight.direction",-0.2f, -1.0f, -0.3f);
+        shader.setVec3("dirLight.direction", dirLightPosition);
         shader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
         shader.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
         shader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
@@ -184,10 +252,19 @@ int main() {
         shader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
         shader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
 
-        auto model = glm::mat4(1.0f);
+        model = glm::mat4(1.0f);
         shader.setMat4("model", model);
         glEnable(GL_FRAMEBUFFER_SRGB);
         backpack.Draw(shader);
+
+        glActiveTexture(GL_TEXTURE6);
+        glBindTexture(GL_TEXTURE_2D, depthMap);
+        singlecolor.use();
+        singlecolor.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+        model = glm::translate(model, glm::vec3(0.0f, -1.3f, 0.0f));
+        singlecolor.setMat4("model", model);
+        glBindVertexArray(planeVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
 
         //displayNormal.use();
         //displayNormal.setMat4("model", model);
