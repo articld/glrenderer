@@ -1,5 +1,3 @@
-//TODO la texture specular al momento usa tutte le componenti!
-
 #version 330 core
 out vec4 FragColor;
 
@@ -106,7 +104,7 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir){
     //uso il modello di shading di blinn phong
     vec3 halfwayDir = normalize(lightDir + viewDir);
     float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
-    vec3 specular = vec3(texture(material.texture_specular1, fs_in.texCoords)) * spec * light.specular;
+    vec3 specular = vec3(texture(material.texture_specular1, fs_in.texCoords)).r * spec * light.specular;
 
     float shadow = ShadowCalculation(fs_in.FragPosLightSpace);
     vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular));
@@ -130,7 +128,7 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir){
     //reflect si aspetta che il primo vettore punti dalla sorgente di luce alla posizione del fragment
     vec3 halfwayDir = normalize(lightDir + viewDir);
     float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
-    vec3 specular = vec3(texture(material.texture_specular1, fs_in.texCoords)) * spec * light.specular;
+    vec3 specular = vec3(texture(material.texture_specular1, fs_in.texCoords)).r * spec * light.specular;
 
     ambient *= attenuation;
     diffuse *= attenuation;
@@ -158,7 +156,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir){
 
     vec3 halfwayDir = normalize(lightDir + viewDir);
     float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
-    vec3 specular = vec3(texture(material.texture_specular1, fs_in.texCoords)) * spec * light.specular;
+    vec3 specular = vec3(texture(material.texture_specular1, fs_in.texCoords)).r * spec * light.specular;
 
     ambient *= attenuation;
     diffuse *= attenuation;
