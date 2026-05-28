@@ -88,7 +88,7 @@ int main() {
     Shader singlecolor("../src/shaders/model.vs", "../src/shaders/singlecolor.fs");
     Shader shadowmapping("../src/shaders/shadowmap.vs", "../src/shaders/shadowmap.fs");
     //Shader displayNormal ("../src/shaders/model.vs", "../src/shaders/model.gs", "../src/shaders/singlecolor.fs");
-    Model backpack ("../resources/models/backpack/backpack.obj");
+    Model backpack ("../resources/models/backpack/backpack.glb");
 
     glm::vec3 pointLightsPosition []={
         glm::vec3( 0.7f,  0.2f,  2.0f),
@@ -132,8 +132,10 @@ int main() {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
     glDrawBuffer(GL_NONE);
@@ -161,14 +163,15 @@ int main() {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        glCullFace(GL_FRONT);
         glViewport(0,0, SHADOW_WIDTH, SHADOW_HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
-        float nearplane = 1.0f, farplane = 10.0f;
+        float nearplane = 1.0f, farplane = 7.5f;
         glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, nearplane, farplane);
         glm::mat4 lightView = glm::lookAt(dirLightPosition,
                                         glm ::vec3(0.0f, 0.0f, 0.0f),
-                                           glm::vec3(0.0f, 1.0f, 0.0f));
+                                        glm::vec3(0.0f, 1.0f, 0.0f));
 
         glm::mat4 lightSpaceMatrix = lightProjection * lightView;
         shadowmapping.use();
@@ -182,6 +185,7 @@ int main() {
         shadowmapping.setMat4("model", model);
         glBindVertexArray(planeVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
+        glCullFace(GL_BACK);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glViewport(0,0, SCR_WIDTH, SCR_HEIGHT);
@@ -261,6 +265,7 @@ int main() {
         glBindTexture(GL_TEXTURE_2D, depthMap);
         singlecolor.use();
         singlecolor.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+        singlecolor.setVec3("lightDir", dirLightPosition);
         model = glm::translate(model, glm::vec3(0.0f, -1.3f, 0.0f));
         singlecolor.setMat4("model", model);
         glBindVertexArray(planeVAO);
