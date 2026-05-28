@@ -20,6 +20,7 @@ class Model {
         }
         void Draw(Shader &shader);
     private:
+        const aiScene* modelscene;
         std::vector<Mesh> meshes;
         std::string directory;
         std::vector<Texture> textures_loaded;

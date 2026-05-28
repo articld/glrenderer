@@ -1,3 +1,5 @@
+//TODO la texture specular al momento usa tutte le componenti!
+
 #version 330 core
 out vec4 FragColor;
 
