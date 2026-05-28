@@ -1,12 +1,14 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <stb_image.h>
+//#include <stb_image.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 #include "Shader.h"
 #include "Camera.h"
+
+#include "modelimport/Directory.h"
 #include "modelimport/model.h"
 
 /*
@@ -88,6 +90,10 @@ int main() {
     Shader singlecolor("../src/shaders/model.vs", "../src/shaders/singlecolor.fs");
     Shader shadowmapping("../src/shaders/shadowmap.vs", "../src/shaders/shadowmap.fs");
     //Shader displayNormal ("../src/shaders/model.vs", "../src/shaders/model.gs", "../src/shaders/singlecolor.fs");
+
+    Directory dir("../resources/models");
+    std::cout<<"Total elements discovered: " << dir.GetTotalElements() <<std::endl << dir.GetItem() << dir.GetItem();
+
     Model backpack ("../resources/models/backpack/backpack.glb");
 
     glm::vec3 pointLightsPosition []={
