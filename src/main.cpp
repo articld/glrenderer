@@ -92,7 +92,7 @@ int main() {
     //Shader displayNormal ("../src/shaders/model.vs", "../src/shaders/model.gs", "../src/shaders/singlecolor.fs");
 
     Directory dir("../resources/models");
-    std::cout<<"Total elements discovered: " << dir.GetTotalElements() <<std::endl << dir.GetItem() << dir.GetItem();
+    std::cout<<"Total elements discovered: " <<std::endl;
 
     Model backpack ("../resources/models/backpack/backpack.glb");
 

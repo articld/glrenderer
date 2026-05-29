@@ -3,9 +3,9 @@
 Directory::Directory(std::string path) {
     if (!SetDirectory(path))
         std::cerr << "Impossibile utilizzare il path " << path;
-    rendered_elements_file.open(path + "/rendered_files.txt");
+    rendered_elements_file.open(path + "/rendered_files.txt", std::ios::in | std::ios::app);
 
-    if (!rendered_elements_file.is_open() && !rendered_elements_file.good())
+    if (!rendered_elements_file.good())
         std::cerr << "Impossibile aprire i file dei progressi" << std::endl;
     else
         LoadRenderedFiles();
@@ -22,11 +22,14 @@ Directory::Directory(std::string path) {
 }
 
 void Directory::LoadRenderedFiles() {
+    rendered_elements_file.seekg(0);
+
     while (!rendered_elements_file.eof()) {
         std::string line;
         std::getline(rendered_elements_file, line);
         rendered_elements.insert(line);
     }
+    rendered_elements_file.clear();
 }
 
 bool Directory::SetDirectory(std::string path) {
@@ -49,6 +52,9 @@ std::string Directory::GetItem() {
         return "EOF";
 
     std::string item = *iterator;
+    rendered_elements.insert(item);
+    rendered_elements_file << item <<std::endl;
+    rendered_elements_file.flush();
     ++iterator;
     return item;
 }
