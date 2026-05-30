@@ -15,7 +15,7 @@
 
 class Model {
     public:
-        Model(char *path) {
+        Model(const char *path) {
             loadModel(path);
         }
         void Draw(Shader &shader);

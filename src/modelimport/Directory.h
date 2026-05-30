@@ -13,17 +13,18 @@ class Directory {
     private:
         std::string directory;
 
+        std::string path;
         std::deque<std::string> files;
         std::deque<std::string>::iterator iterator;
 
         std::fstream rendered_elements_file;
         std::unordered_set<std::string> rendered_elements;
 
-        bool SetDirectory(std::string path);
+        bool SetDirectory(std::string in);
         void LoadRenderedFiles();
 
     public:
-        Directory(std::string path);
+        Directory(std::string in);
         ~Directory() {
             if (!rendered_elements_file.is_open())
                 rendered_elements_file.close();

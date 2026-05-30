@@ -1,9 +1,9 @@
 #include "Directory.h"
 
-Directory::Directory(std::string path) {
-    if (!SetDirectory(path))
-        std::cerr << "Impossibile utilizzare il path " << path;
-    rendered_elements_file.open(path + "/rendered_files.txt", std::ios::in | std::ios::app);
+Directory::Directory(std::string in) {
+    if (!SetDirectory(in))
+        std::cerr << "Impossibile utilizzare il path " << in;
+    rendered_elements_file.open(in + "/rendered_files.txt", std::ios::in | std::ios::app);
 
     if (!rendered_elements_file.good())
         std::cerr << "Impossibile aprire i file dei progressi" << std::endl;
@@ -32,7 +32,8 @@ void Directory::LoadRenderedFiles() {
     rendered_elements_file.clear();
 }
 
-bool Directory::SetDirectory(std::string path) {
+bool Directory::SetDirectory(std::string in) {
+    path = in;
     if (path.length() >= 0) {
         directory = path;
         return true;
@@ -56,5 +57,5 @@ std::string Directory::GetItem() {
     rendered_elements_file << item <<std::endl;
     rendered_elements_file.flush();
     ++iterator;
-    return item;
+    return path + "/" + item;
 }

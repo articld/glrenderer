@@ -69,8 +69,8 @@ unsigned int TextureFromScene(const aiScene* scene, const char *path, const bool
 
     int width, height, nrComponents;
 
-    if (!texture->mHeight) {
-        std::cerr<<"ATTENZIONE, la texture caricata non è compressa!";
+    if (texture->mHeight != 0) {
+        std::cerr<<"ATTENZIONE, la texture caricata non e' compressa!";
     }
 
     unsigned char *data = stbi_load_from_memory((unsigned char*)texture->pcData, texture->mWidth, &width, &height, &nrComponents, 0);
