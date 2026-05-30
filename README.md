@@ -17,10 +17,12 @@
 
 ## Come compilare
 - Creare e copiare nella cartella libraries le librerie GLFW e glad. 
-- Per stb_image, creare una cartella "include" per il file .h e una cartella "src". Creare il file stb_image.cpp all'interno della cartella src, con il seguente contenuto
+- Per stb_image e write, creare una cartella "include" per il file .h e una cartella "src". Creare il file stb_image.cpp all'interno della cartella src, con il seguente contenuto
 ```c++
 #define STB_IMAGE_IMPLEMENTATION
 #include "../include/stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "../include/stb_image_write.h"
 ```
 - Installare glm con Vcpkg
 - Installare assimp con Vcpkg
