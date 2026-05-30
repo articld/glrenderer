@@ -25,7 +25,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
-void saveImage(const GLFWwindow* w, const char* filepath);
+void saveImage(GLFWwindow* w, const char* filepath);
 
 /*
 unsigned int loadTexture(const char *path);
@@ -117,6 +117,12 @@ int main() {
 
     while(!glfwWindowShouldClose(window)){
         std::string current_file = dir.GetItem();
+        int last_slash = current_file.find_last_of("/");
+        int last_dot = current_file.find_last_of(".");
+        std::string file_name = current_file.substr(last_slash + 1, last_dot - last_slash -1);
+        file_name = "../resources/output/" + file_name + ".png";
+        std::cout << file_name << std::endl;
+
         if (!current_file.compare("EOF")) break;
         Model item(current_file.c_str());
 
@@ -197,7 +203,7 @@ int main() {
         shader.setMat4("model", model);
         glEnable(GL_FRAMEBUFFER_SRGB);
         item.Draw(shader);
-        saveImage(window, "output.png");
+        saveImage(window, file_name.c_str());
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -213,7 +219,6 @@ void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.processKeyboard(FORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -256,7 +261,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     camera.processScroll(static_cast<float>(yoffset));
 }
 
-void saveImage(const GLFWwindow* w, const char* filepath) {
+void saveImage(GLFWwindow* w, const char* filepath) {
     int width, height;
     glfwGetFramebufferSize(w, &width, &height);
     GLsizei nrChannels = 3;
