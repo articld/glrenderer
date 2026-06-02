@@ -8,7 +8,6 @@
 #include "Shader.h"
 #include "Camera.h"
 
-#include "modelimport/Directory.h"
 #include "modelimport/model.h"
 
 /*
@@ -20,6 +19,7 @@
 
 #include <iostream>
 #include <vector>
+#include <filesystem>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -37,7 +37,8 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+//TODO: probabilmente mettere la posizione della camera a metà di extent_y.
+Camera camera(glm::vec3(0.0f, 0.9945632175300716f, 3.0f));
 float lastX = (float)SCR_WIDTH  / 2.0;
 float lastY = (float)SCR_HEIGHT / 2.0;
 bool firstMouse = true;
@@ -46,16 +47,21 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-int main() {
-    // glfw: initialize and configure
-    // ------------------------------
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+int main(int argc, char** argv) {
+    if (argc == 1) {
+        std::cerr<<"No path provided";
+        return -1;
+    }
 
-    Directory dir("../resources/models");
-    std::cout<<"Total elements discovered: " <<std::endl;
+    if (argc > 2 ) {
+        std::cerr<<"Too many arguments";
+        return -1;
+    }
+
+    glfwInit();
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // glfw window creation
     // --------------------
@@ -71,17 +77,13 @@ int main() {
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
-    // tell GLFW to capture our mouse
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwWindowHint(GLFW_SAMPLES, 16);
 
-    // glad: load all OpenGL function pointers
-    // ---------------------------------------
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
-
 
     //opengl render settings
     glEnable(GL_DEPTH_TEST);
@@ -112,20 +114,16 @@ int main() {
     glBindBufferRange(GL_UNIFORM_BUFFER, 0, uboMatrices, 0, 2 * sizeof(glm::mat4));
 
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    Model item(argv[1]);
+    std::string current_file = argv[1];
+    int last_slash = current_file.find_last_of("/");
+    int last_dot = current_file.find_last_of(".");
+    std::string file_name = current_file.substr(last_slash + 1, last_dot - last_slash -1);
+    std::filesystem::create_directory("../resources/output/test");
+    int n_image = 0;
 
     glm::vec3 dirLightPosition(-2.0f, 4.0f, -1.0f);
-
     while(!glfwWindowShouldClose(window)){
-        std::string current_file = dir.GetItem();
-        int last_slash = current_file.find_last_of("/");
-        int last_dot = current_file.find_last_of(".");
-        std::string file_name = current_file.substr(last_slash + 1, last_dot - last_slash -1);
-        file_name = "../resources/output/" + file_name + ".png";
-        std::cout << file_name << std::endl;
-
-        if (!current_file.compare("EOF")) break;
-        Model item(current_file.c_str());
-
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
@@ -148,8 +146,6 @@ int main() {
 		shader.setFloat("material.shininess", 32.0f);
 
 		auto lightColor = glm::vec3(1.0f);
-		glm::vec3 diffuseColor = lightColor * 0.5f;
-		glm::vec3 ambientColor = lightColor * 0.2f;
 		// directional light
         shader.setVec3("dirLight.direction", dirLightPosition);
         shader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
@@ -203,10 +199,13 @@ int main() {
         shader.setMat4("model", model);
         glEnable(GL_FRAMEBUFFER_SRGB);
         item.Draw(shader);
-        saveImage(window, file_name.c_str());
 
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        std::string output_path = "../resources/output/test/" + file_name + "_" + std::to_string(n_image) + ".png";
+        saveImage(window, output_path.c_str());
+        n_image ++;
     }
 
     glfwTerminate();
