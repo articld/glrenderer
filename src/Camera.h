@@ -32,12 +32,12 @@ class Camera {
 
     public:
         Camera(glm::vec3 newPosition = glm::vec3(0.0f, 0.0f, 3.0f)
+              , float newFOV = 45.0f
+              , float newAspectRatio = 4.0f/3.0f
               , glm::vec3 newFront = glm::vec3(0.0f, 0.0f, -1.0f)
               , glm::vec3 newWorldUp = glm::vec3(0.0f, 1.0f, 0.0f)
-              , float newAspectRatio = 4.0f/3.0f
               , float newYaw = -90.0f
-              , float newPitch = 0.0f
-              , float newFOV = 45.0f)
+              , float newPitch = 0.0f )
         {
             position = newPosition;
             front = newFront;
@@ -52,6 +52,7 @@ class Camera {
         void processKeyboard(Camera_Movement direction, float deltaTime);
         void processMouse(float xoffset, float yoffset, bool constrainPitch);
         void processScroll(float yoffset);
+        void setPosition(const glm::vec3 newPosition);
         glm::vec3 getPosition() const;
         glm::vec3 getFront() const;
         glm::mat4 getPerspectiveMatrix() const;

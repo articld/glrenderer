@@ -21,24 +21,21 @@
 #include <vector>
 #include <filesystem>
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow *window);
-void saveImage(GLFWwindow* w, const char* filepath);
-
 /*
-unsigned int loadTexture(const char *path);
 unsigned int loadCubemap(std::vector<std::string> texture_faces);
 */
 
 // settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+constexpr unsigned int SCR_WIDTH = 800;
+constexpr unsigned int SCR_HEIGHT = 800;
+
+constexpr float FOV = 39.0f;
 
 // camera
 //TODO: probabilmente mettere la posizione della camera a metà di extent_y.
-Camera camera(glm::vec3(0.0f, 0.9945632175300716f, 3.0f));
+Camera camera(glm::vec3(0.0f, 0.9945632175300716f/2.0f, 3.0f),
+             FOV,
+             SCR_WIDTH /SCR_HEIGHT);
 float lastX = (float)SCR_WIDTH  / 2.0;
 float lastY = (float)SCR_HEIGHT / 2.0;
 bool firstMouse = true;
@@ -47,13 +44,95 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
+void processInput(GLFWwindow *window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.processKeyboard(FORWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.processKeyboard(BACKWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.processKeyboard(LEFT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.processKeyboard(RIGHT, deltaTime);
+}
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    // make sure the viewport matches the new window dimensions; note that width and
+    // height will be significantly larger than specified on retina displays.
+    glViewport(0, 0, width, height);
+}
+
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
+{
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
+
+    if (firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+
+    lastX = xpos;
+    lastY = ypos;
+    camera.processMouse(xoffset, yoffset, true);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    camera.processScroll(static_cast<float>(yoffset));
+}
+
+void saveImage(GLFWwindow* w, const char* filepath) {
+    int width, height;
+    glfwGetFramebufferSize(w, &width, &height);
+    GLsizei nrChannels = 3;
+    GLsizei stride = nrChannels * width;
+    stride += (stride % 4) ? (4 - stride % 4) : 0;
+    GLsizei bufferSize = stride * height;
+    std::vector<char> buffer(bufferSize);
+    glPixelStorei(GL_PACK_ALIGNMENT, 4);
+    glReadBuffer(GL_FRONT);
+    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, buffer.data());
+    stbi_flip_vertically_on_write(true);
+    stbi_write_png(filepath, width, height, nrChannels, buffer.data(), stride);
+}
+
+float getCameraDistance(const float extent_x, const float extent_y, const float extent_z, const glm::mat4 &rotation) {
+    glm::vec3 corners[] = {
+        glm::vec3(-extent_x/2, -extent_y/2, -extent_z/2),
+        glm::vec3( extent_x/2, -extent_y/2, -extent_z/2),
+        glm::vec3(-extent_x/2,  extent_y/2, -extent_z/2),
+        glm::vec3( extent_x/2,  extent_y/2, -extent_z/2),
+        glm::vec3(-extent_x/2, -extent_y/2,  extent_z/2),
+        glm::vec3( extent_x/2, -extent_y/2,  extent_z/2),
+        glm::vec3(-extent_x/2,  extent_y/2,  extent_z/2),
+        glm::vec3( extent_x/2,  extent_y/2,  extent_z/2)
+    };
+    float max_distance = 0.0f;
+    for (int i = 0; i < 8; i++) {
+        glm::vec3 rotated_corner = glm::vec3(rotation * glm::vec4(corners[i], 1.0f));
+        float distance = glm::length(rotated_corner);
+        max_distance = std::max(max_distance, distance);
+    }
+    return max_distance / glm::tan(glm::radians(FOV) / 2.0f);
+}
+
+//IN INPUT path, extent_x, extent_y, extent_z
 int main(int argc, char** argv) {
-    if (argc == 1) {
-        std::cerr<<"No path provided";
+    if (argc  <5 ) {
+        std::cerr<<"Missing arguments";
         return -1;
     }
 
-    if (argc > 2 ) {
+    if (argc > 5 ) {
         std::cerr<<"Too many arguments";
         return -1;
     }
@@ -92,6 +171,7 @@ int main(int argc, char** argv) {
     glEnable(GL_CULL_FACE);
     glEnable(GL_MULTISAMPLE);
     glDepthFunc(GL_LEQUAL);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     Shader shader("../src/shaders/model.vs","../src/shaders/model.fs");
 
@@ -113,7 +193,13 @@ int main(int argc, char** argv) {
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     glBindBufferRange(GL_UNIFORM_BUFFER, 0, uboMatrices, 0, 2 * sizeof(glm::mat4));
 
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    float extent_x = std::stof(argv[2]);
+    float extent_y = std::stof(argv[3]);
+    float extent_z = std::stof(argv[4]);
+
+    auto model = glm::mat4(1.0f);
+    camera.setPosition(glm::vec3(0, extent_y/2.0f, getCameraDistance(extent_x, extent_y, extent_z, model)));
+
     Model item(argv[1]);
     std::string current_file = argv[1];
     int last_slash = current_file.find_last_of("/");
@@ -195,7 +281,6 @@ int main(int argc, char** argv) {
         shader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
         shader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
 
-        auto model = glm::mat4(1.0f);
         shader.setMat4("model", model);
         glEnable(GL_FRAMEBUFFER_SRGB);
         item.Draw(shader);
@@ -204,7 +289,7 @@ int main(int argc, char** argv) {
         glfwPollEvents();
 
         std::string output_path = "../resources/output/test/" + file_name + "_" + std::to_string(n_image) + ".png";
-        saveImage(window, output_path.c_str());
+        //saveImage(window, output_path.c_str());
         n_image ++;
     }
 
@@ -212,68 +297,6 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-// ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow *window)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.processKeyboard(FORWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.processKeyboard(BACKWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.processKeyboard(LEFT, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.processKeyboard(RIGHT, deltaTime);
-}
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-    // make sure the viewport matches the new window dimensions; note that width and
-    // height will be significantly larger than specified on retina displays.
-    glViewport(0, 0, width, height);
-}
-
-void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
-{
-    float xpos = static_cast<float>(xposIn);
-    float ypos = static_cast<float>(yposIn);
-
-    if (firstMouse)
-    {
-        lastX = xpos;
-        lastY = ypos;
-        firstMouse = false;
-    }
-
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-
-    lastX = xpos;
-    lastY = ypos;
-    camera.processMouse(xoffset, yoffset, true);
-}
-
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
-    camera.processScroll(static_cast<float>(yoffset));
-}
-
-void saveImage(GLFWwindow* w, const char* filepath) {
-    int width, height;
-    glfwGetFramebufferSize(w, &width, &height);
-    GLsizei nrChannels = 3;
-    GLsizei stride = nrChannels * width;
-    stride += (stride % 4) ? (4 - stride % 4) : 0;
-    GLsizei bufferSize = stride * height;
-    std::vector<char> buffer(bufferSize);
-    glPixelStorei(GL_PACK_ALIGNMENT, 4);
-    glReadBuffer(GL_FRONT);
-    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, buffer.data());
-    stbi_flip_vertically_on_write(true);
-    stbi_write_png(filepath, width, height, nrChannels, buffer.data(), stride);
-}
 
 // utility function for loading a 2D texture from file
 // ---------------------------------------------------

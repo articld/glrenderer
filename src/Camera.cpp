@@ -35,6 +35,10 @@ void Camera::processScroll(float yoffset) {
         FOV = 45.0f;
 }
 
+void Camera::setPosition(const glm::vec3 newPosition) {
+    position = newPosition;
+}
+
 glm::mat4 Camera::getViewMatrix() const {
     glm::mat4 view = glm::mat4(1.0f);
     return view = glm::lookAt(position, position + front, up);
