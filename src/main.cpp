@@ -76,7 +76,7 @@ void saveImage(GLFWwindow* w, const char* filepath) {
     stbi_write_png(filepath, width, height, nrChannels, buffer.data(), stride);
 }
 
-float getCameraDistance(const float extent_x, const float extent_y, const float extent_z, const glm::mat4 &rotation) {
+float getCameraDistance(const float extent_x, const float extent_y, const float extent_z, const glm::mat4 &model) {
     //extent_y dovrebbe avere come coordinate estreme 0 extent_y perché tutti gli oggetti sono sul piano y=0
     glm::vec3 corners[] = {
         glm::vec3(-extent_x/2, 0, -extent_z/2),
@@ -90,7 +90,7 @@ float getCameraDistance(const float extent_x, const float extent_y, const float 
     };
     float max_distance = 0.0f;
     for (int i = 0; i < 8; i++) {
-        glm::vec3 rotated_corner = glm::vec3(rotation * glm::vec4(corners[i], 1.0f));
+        glm::vec3 rotated_corner = glm::vec3(model* glm::vec4(corners[i], 1.0f));
         float distance = glm::length(rotated_corner);
         max_distance = std::max(max_distance, distance);
     }
@@ -193,6 +193,29 @@ int main(int argc, char** argv) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        model = glm::mat4(1.0f);
+        float  scale_x = glm::linearRand(0.8f, 1.2f);
+        float  scale_y = glm::linearRand(0.8f, 1.2f);
+        float  scale_z = glm::linearRand(0.8f, 1.2f);
+
+        std::cout << scale_x << " " << scale_y << " " << scale_z << std::endl;
+
+        model = glm::scale(model, glm::vec3(scale_x, scale_y, scale_z));
+
+        yaw += 36.0f;
+        if (yaw >= 359.0f && yaw <= 361.0f) {
+            yaw = 0.0f;
+            pitch += 15.0f;
+        }
+        if (pitch >= 99.0f && pitch <= 120.0f) {
+            break;
+        }
+        roll = glm::linearRand(-15.0f, 15.0f);
+        const glm::mat4 rotation = glm::eulerAngleXYZ(glm::radians(pitch), glm::radians(yaw), glm::radians(roll));
+        model *= rotation;
+
+        camera.setPosition(glm::vec3(0, extent_y/2.0f, getCameraDistance(extent_x, extent_y, extent_z, model)));
+
         glm::mat4 projection = camera.getPerspectiveMatrix();
         glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
         glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
@@ -254,21 +277,6 @@ int main(int argc, char** argv) {
         shader.setFloat("spotLight.quadratic", 0.032f);
         shader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
         shader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
-
-        yaw += 36.0f;
-        if (yaw >= 359.0f && yaw <= 361.0f) {
-            yaw = 0.0f;
-            pitch += 15.0f;
-        }
-        if (pitch >= 99.0f && pitch <= 120.0f) {
-            break;
-        }
-        roll = glm::linearRand(-15.0f, 15.0f);
-        const glm::mat4 rotation = glm::eulerAngleXYZ(glm::radians(pitch), glm::radians(yaw), glm::radians(roll));
-        model = glm::mat4(1.0f);
-        model *= rotation;
-        camera.setPosition(glm::vec3(0, extent_y/2.0f, getCameraDistance(extent_x, extent_y, extent_z, model)));
-
         shader.setMat4("model", model);
         glEnable(GL_FRAMEBUFFER_SRGB);
         item.Draw(shader);
