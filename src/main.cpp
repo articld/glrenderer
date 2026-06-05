@@ -5,6 +5,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/euler_angles.hpp>
+#include <glm/gtc/random.hpp>
+
 #include "Shader.h"
 #include "Camera.h"
 
@@ -48,14 +52,6 @@ void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.processKeyboard(FORWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.processKeyboard(BACKWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.processKeyboard(LEFT, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.processKeyboard(RIGHT, deltaTime);
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -63,31 +59,6 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     // make sure the viewport matches the new window dimensions; note that width and
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
-}
-
-void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
-{
-    float xpos = static_cast<float>(xposIn);
-    float ypos = static_cast<float>(yposIn);
-
-    if (firstMouse)
-    {
-        lastX = xpos;
-        lastY = ypos;
-        firstMouse = false;
-    }
-
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-
-    lastX = xpos;
-    lastY = ypos;
-    camera.processMouse(xoffset, yoffset, true);
-}
-
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
-    camera.processScroll(static_cast<float>(yoffset));
 }
 
 void saveImage(GLFWwindow* w, const char* filepath) {
@@ -106,15 +77,16 @@ void saveImage(GLFWwindow* w, const char* filepath) {
 }
 
 float getCameraDistance(const float extent_x, const float extent_y, const float extent_z, const glm::mat4 &rotation) {
+    //extent_y dovrebbe avere come coordinate estreme 0 extent_y perché tutti gli oggetti sono sul piano y=0
     glm::vec3 corners[] = {
-        glm::vec3(-extent_x/2, -extent_y/2, -extent_z/2),
-        glm::vec3( extent_x/2, -extent_y/2, -extent_z/2),
-        glm::vec3(-extent_x/2,  extent_y/2, -extent_z/2),
-        glm::vec3( extent_x/2,  extent_y/2, -extent_z/2),
-        glm::vec3(-extent_x/2, -extent_y/2,  extent_z/2),
-        glm::vec3( extent_x/2, -extent_y/2,  extent_z/2),
-        glm::vec3(-extent_x/2,  extent_y/2,  extent_z/2),
-        glm::vec3( extent_x/2,  extent_y/2,  extent_z/2)
+        glm::vec3(-extent_x/2, 0, -extent_z/2),
+        glm::vec3( extent_x/2, 0, -extent_z/2),
+        glm::vec3(-extent_x/2,  extent_y, -extent_z/2),
+        glm::vec3( extent_x/2,  extent_y, -extent_z/2),
+        glm::vec3(-extent_x/2, 0,  extent_z/2),
+        glm::vec3( extent_x/2, 0,  extent_z/2),
+        glm::vec3(-extent_x/2,  extent_y,  extent_z/2),
+        glm::vec3( extent_x/2,  extent_y,  extent_z/2)
     };
     float max_distance = 0.0f;
     for (int i = 0; i < 8; i++) {
@@ -153,10 +125,8 @@ int main(int argc, char** argv) {
 
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetCursorPosCallback(window, mouse_callback);
-    glfwSetScrollCallback(window, scroll_callback);
 
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwWindowHint(GLFW_SAMPLES, 16);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
@@ -198,6 +168,10 @@ int main(int argc, char** argv) {
     float extent_z = std::stof(argv[4]);
 
     auto model = glm::mat4(1.0f);
+    float pitch = - 15.0f;
+    //nel loop parto aggiungendo 36 gradi
+    float yaw = - 36.0f;
+    float roll = 0.0f;
     camera.setPosition(glm::vec3(0, extent_y/2.0f, getCameraDistance(extent_x, extent_y, extent_z, model)));
 
     Model item(argv[1]);
@@ -281,6 +255,20 @@ int main(int argc, char** argv) {
         shader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
         shader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
 
+        yaw += 36.0f;
+        if (yaw >= 359.0f && yaw <= 361.0f) {
+            yaw = 0.0f;
+            pitch += 15.0f;
+        }
+        if (pitch >= 99.0f && pitch <= 120.0f) {
+            break;
+        }
+        roll = glm::linearRand(-15.0f, 15.0f);
+        const glm::mat4 rotation = glm::eulerAngleXYZ(glm::radians(pitch), glm::radians(yaw), glm::radians(roll));
+        model = glm::mat4(1.0f);
+        model *= rotation;
+        camera.setPosition(glm::vec3(0, extent_y/2.0f, getCameraDistance(extent_x, extent_y, extent_z, model)));
+
         shader.setMat4("model", model);
         glEnable(GL_FRAMEBUFFER_SRGB);
         item.Draw(shader);
@@ -289,7 +277,7 @@ int main(int argc, char** argv) {
         glfwPollEvents();
 
         std::string output_path = "../resources/output/test/" + file_name + "_" + std::to_string(n_image) + ".png";
-        //saveImage(window, output_path.c_str());
+        saveImage(window, output_path.c_str());
         n_image ++;
     }
 
