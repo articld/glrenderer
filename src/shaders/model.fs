@@ -9,7 +9,6 @@ in VS_OUT{
 }fs_in;
 
 uniform vec3 viewPos;
-uniform vec3 lightColor;
 
 //deve essere definito in un uniform, altrimenti da errore
 struct Material {
@@ -31,6 +30,7 @@ uniform Material material;
 struct DirLight{
     vec3 direction;
 
+    vec3 lightColor;
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
@@ -42,6 +42,7 @@ struct PointLight{
     vec3 position;
     vec3 direction;
 
+    vec3 lightColor;
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
@@ -61,6 +62,7 @@ struct SpotLight{
     float cutOff;
     float fallOff;
 
+    vec3 lightColor;
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
@@ -114,7 +116,7 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir){
 
     //float shadow = ShadowCalculation(fs_in.FragPosLightSpace);
     //vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular));
-    vec3 lighting = (ambient + diffuse + specular);
+    vec3 lighting = (ambient + diffuse * light.lightColor + specular * light.lightColor);
 
     return lighting;
 }
@@ -141,7 +143,7 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir){
     diffuse *= attenuation;
     specular *= attenuation;
 
-    return (ambient + diffuse + specular);
+    return (ambient + diffuse * light.lightColor + specular * light.lightColor);
 }
 
 vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir){
@@ -173,7 +175,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir){
     diffuse *= intensity;
     specular *= intensity;
 
-    return (ambient + diffuse + specular);
+    return (ambient + diffuse * light.lightColor + specular * light.lightColor);
 }
 
 void main()

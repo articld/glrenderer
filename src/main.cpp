@@ -64,14 +64,14 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 void saveImage(GLFWwindow* w, const char* filepath) {
     int width, height;
     glfwGetFramebufferSize(w, &width, &height);
-    GLsizei nrChannels = 3;
+    GLsizei nrChannels = 4;
     GLsizei stride = nrChannels * width;
     stride += (stride % 4) ? (4 - stride % 4) : 0;
     GLsizei bufferSize = stride * height;
     std::vector<char> buffer(bufferSize);
     glPixelStorei(GL_PACK_ALIGNMENT, 4);
     glReadBuffer(GL_FRONT);
-    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, buffer.data());
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, buffer.data());
     stbi_flip_vertically_on_write(true);
     stbi_write_png(filepath, width, height, nrChannels, buffer.data(), stride);
 }
@@ -95,6 +95,12 @@ float getCameraDistance(const float extent_x, const float extent_y, const float 
         max_distance = std::max(max_distance, distance);
     }
     return max_distance / glm::tan(glm::radians(FOV) / 2.0f);
+}
+
+void randomizeColor(glm::vec3 &randomLightColor) {
+    randomLightColor.r = glm::linearRand(0.0f, 1.0f);
+    randomLightColor.g = glm::linearRand(0.0f, 1.0f);
+    randomLightColor.b = glm::linearRand(0.0f, 1.0f);
 }
 
 //IN INPUT path, extent_x, extent_y, extent_z
@@ -179,7 +185,7 @@ int main(int argc, char** argv) {
     int last_slash = current_file.find_last_of("/");
     int last_dot = current_file.find_last_of(".");
     std::string file_name = current_file.substr(last_slash + 1, last_dot - last_slash -1);
-    std::filesystem::create_directory("../resources/output/test");
+    std::filesystem::create_directory("../resources/output/" + file_name);
     int n_image = 0;
 
     glm::vec3 dirLightPosition(-2.0f, 4.0f, -1.0f);
@@ -190,7 +196,7 @@ int main(int argc, char** argv) {
         processInput(window);
         glDisable(GL_FRAMEBUFFER_SRGB);
 
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         model = glm::mat4(1.0f);
@@ -224,15 +230,20 @@ int main(int argc, char** argv) {
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
         shader.use();
-		shader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
 		shader.setFloat("material.shininess", 32.0f);
 
-		auto lightColor = glm::vec3(1.0f);
 		// directional light
+        dirLightPosition.x = glm::linearRand(-1.0f, 1.0f);
+        dirLightPosition.y = glm::linearRand(-1.0f, 1.0f);
+        dirLightPosition.z = glm::linearRand(-1.0f, 1.0f);
+
         shader.setVec3("dirLight.direction", dirLightPosition);
         shader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
         shader.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
         shader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
+        glm::vec3 randomLightColor(glm::linearRand(0.0f, 1.0f), glm::linearRand(0.0f, 1.0f),
+                                   glm::linearRand(0.0f, 1.0f));
+        shader.setVec3("dirLight.lightColor", randomLightColor);
         // point light 1
         shader.setVec3("pointLights[0].position", pointLightsPosition[0]);
         shader.setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f);
@@ -241,7 +252,9 @@ int main(int argc, char** argv) {
         shader.setFloat("pointLights[0].constant", 1.0f);
         shader.setFloat("pointLights[0].linear", 0.09f);
         shader.setFloat("pointLights[0].quadratic", 0.032f);
-        shader.setBool("pointLights[0].useThisLight", 0);
+        shader.setBool("pointLights[0].useThisLight", glm::linearRand(0.0f, 1.0f) > 0.5f);
+        randomizeColor(randomLightColor);
+        shader.setVec3("pointLights[0].lightColor", randomLightColor);
         // point light 2
         shader.setVec3("pointLights[1].position", pointLightsPosition[1]);
         shader.setVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f);
@@ -250,7 +263,9 @@ int main(int argc, char** argv) {
         shader.setFloat("pointLights[1].constant", 1.0f);
         shader.setFloat("pointLights[1].linear", 0.09f);
         shader.setFloat("pointLights[1].quadratic", 0.032f);
-        shader.setBool("pointLights[1].useThisLight", 0);
+        shader.setBool("pointLights[1].useThisLight", glm::linearRand(0.0f, 1.0f) > 0.5f);
+        randomizeColor(randomLightColor);
+        shader.setVec3("pointLights[1].lightColor", randomLightColor);
         // point light 3
         shader.setVec3("pointLights[2].position", pointLightsPosition[2]);
         shader.setVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
@@ -259,7 +274,9 @@ int main(int argc, char** argv) {
         shader.setFloat("pointLights[2].constant", 1.0f);
         shader.setFloat("pointLights[2].linear", 0.09f);
         shader.setFloat("pointLights[2].quadratic", 0.032f);
-        shader.setBool("pointLights[2].useThisLight", 0);
+        shader.setBool("pointLights[2].useThisLight", glm::linearRand(0.0f, 1.0f) > 0.5f);
+        randomizeColor(randomLightColor);
+        shader.setVec3("pointLights[2].lightColor", randomLightColor);
         // point light 4
         shader.setVec3("pointLights[3].position", pointLightsPosition[3]);
         shader.setVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
@@ -268,7 +285,9 @@ int main(int argc, char** argv) {
         shader.setFloat("pointLights[3].constant", 1.0f);
         shader.setFloat("pointLights[3].linear", 0.09f);
         shader.setFloat("pointLights[3].quadratic", 0.032f);
-        shader.setBool("pointLights[3].useThisLight", 0);
+        shader.setBool("pointLights[3].useThisLight", glm::linearRand(0.0f, 1.0f) > 0.5f);
+        randomizeColor(randomLightColor);
+        shader.setVec3("pointLights[3].lightColor", randomLightColor);
 
         shader.setMat4("model", model);
         glEnable(GL_FRAMEBUFFER_SRGB);
@@ -277,7 +296,7 @@ int main(int argc, char** argv) {
         glfwSwapBuffers(window);
         glfwPollEvents();
 
-        std::string output_path = "../resources/output/test/" + file_name + "_" + std::to_string(n_image) + ".png";
+        std::string output_path = "../resources/output/"+ file_name + "/" + file_name + "_" + std::to_string(n_image) + ".png";
         saveImage(window, output_path.c_str());
         n_image ++;
     }
