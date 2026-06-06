@@ -56,7 +56,6 @@ struct PointLight{
 uniform PointLight pointLights[NR_POINT_LIGHTS];
 
 struct SpotLight{
-    int useThisLight;
     vec3 position;
     vec3 direction;
     float cutOff;
@@ -187,7 +186,7 @@ void main()
     for(int i = 0; i < NR_POINT_LIGHTS; i++)
         if (pointLights[i].useThisLight > 0) result += CalcPointLight(pointLights[i], norm, fs_in.FragPosition, viewDirection);
 
-    //if(spotLight.useThisLight > 0) result += CalcSpotLight(spotLight, norm, fs_in.FragPosition, viewDirection);
+    result += CalcSpotLight(spotLight, norm, fs_in.FragPosition, viewDirection);
 
     FragColor = vec4(result, 1.0);
 }

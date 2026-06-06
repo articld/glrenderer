@@ -288,6 +288,18 @@ int main(int argc, char** argv) {
         shader.setBool("pointLights[3].useThisLight", glm::linearRand(0.0f, 1.0f) > 0.5f);
         randomizeColor(randomLightColor);
         shader.setVec3("pointLights[3].lightColor", randomLightColor);
+        // spotLight
+        shader.setVec3("spotLight.position", camera.getPosition());
+        shader.setVec3("spotLight.direction", camera.getFront());
+        shader.setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
+        shader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
+        shader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
+        shader.setFloat("spotLight.constant", 1.0f);
+        shader.setFloat("spotLight.linear", 0.09f);
+        shader.setFloat("spotLight.quadratic", 0.032f);
+        shader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
+        shader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
+
 
         shader.setMat4("model", model);
         glEnable(GL_FRAMEBUFFER_SRGB);
