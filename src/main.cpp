@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
 
     // glfw window creation
     // --------------------
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "glrenderer", NULL, NULL);
     if (window == NULL){
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -198,8 +198,6 @@ int main(int argc, char** argv) {
         float  scale_y = glm::linearRand(0.8f, 1.2f);
         float  scale_z = glm::linearRand(0.8f, 1.2f);
 
-        std::cout << scale_x << " " << scale_y << " " << scale_z << std::endl;
-
         model = glm::scale(model, glm::vec3(scale_x, scale_y, scale_z));
 
         yaw += 36.0f;
@@ -214,7 +212,8 @@ int main(int argc, char** argv) {
         const glm::mat4 rotation = glm::eulerAngleXYZ(glm::radians(pitch), glm::radians(yaw), glm::radians(roll));
         model *= rotation;
 
-        camera.setPosition(glm::vec3(0, extent_y/2.0f, getCameraDistance(extent_x, extent_y, extent_z, model)));
+        float camera_height = (extent_y/2.0f) * glm::cos(glm::radians(pitch)) - (extent_z/2) * glm::sin(glm::radians(pitch));
+        camera.setPosition(glm::vec3(0, camera_height, getCameraDistance(extent_x, extent_y, extent_z, model)));
 
         glm::mat4 projection = camera.getPerspectiveMatrix();
         glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
@@ -242,6 +241,7 @@ int main(int argc, char** argv) {
         shader.setFloat("pointLights[0].constant", 1.0f);
         shader.setFloat("pointLights[0].linear", 0.09f);
         shader.setFloat("pointLights[0].quadratic", 0.032f);
+        shader.setBool("pointLights[0].useThisLight", 0);
         // point light 2
         shader.setVec3("pointLights[1].position", pointLightsPosition[1]);
         shader.setVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f);
@@ -250,6 +250,7 @@ int main(int argc, char** argv) {
         shader.setFloat("pointLights[1].constant", 1.0f);
         shader.setFloat("pointLights[1].linear", 0.09f);
         shader.setFloat("pointLights[1].quadratic", 0.032f);
+        shader.setBool("pointLights[1].useThisLight", 0);
         // point light 3
         shader.setVec3("pointLights[2].position", pointLightsPosition[2]);
         shader.setVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
@@ -258,6 +259,7 @@ int main(int argc, char** argv) {
         shader.setFloat("pointLights[2].constant", 1.0f);
         shader.setFloat("pointLights[2].linear", 0.09f);
         shader.setFloat("pointLights[2].quadratic", 0.032f);
+        shader.setBool("pointLights[2].useThisLight", 0);
         // point light 4
         shader.setVec3("pointLights[3].position", pointLightsPosition[3]);
         shader.setVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
@@ -266,17 +268,8 @@ int main(int argc, char** argv) {
         shader.setFloat("pointLights[3].constant", 1.0f);
         shader.setFloat("pointLights[3].linear", 0.09f);
         shader.setFloat("pointLights[3].quadratic", 0.032f);
-        // spotLight
-        shader.setVec3("spotLight.position", camera.getPosition());
-        shader.setVec3("spotLight.direction", camera.getFront());
-        shader.setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
-        shader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
-        shader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
-        shader.setFloat("spotLight.constant", 1.0f);
-        shader.setFloat("spotLight.linear", 0.09f);
-        shader.setFloat("spotLight.quadratic", 0.032f);
-        shader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
-        shader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
+        shader.setBool("pointLights[3].useThisLight", 0);
+
         shader.setMat4("model", model);
         glEnable(GL_FRAMEBUFFER_SRGB);
         item.Draw(shader);

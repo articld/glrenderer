@@ -9,6 +9,7 @@ in VS_OUT{
 }fs_in;
 
 uniform vec3 viewPos;
+uniform vec3 lightColor;
 
 //deve essere definito in un uniform, altrimenti da errore
 struct Material {
@@ -37,6 +38,7 @@ struct DirLight{
 uniform DirLight dirLight;
 
 struct PointLight{
+    int useThisLight;
     vec3 position;
     vec3 direction;
 
@@ -48,10 +50,12 @@ struct PointLight{
     float linear;
     float quadratic;
 };
+
 #define NR_POINT_LIGHTS 4
 uniform PointLight pointLights[NR_POINT_LIGHTS];
 
 struct SpotLight{
+    int useThisLight;
     vec3 position;
     vec3 direction;
     float cutOff;
@@ -69,6 +73,7 @@ uniform SpotLight spotLight;
 
 uniform sampler2D shadowMap;
 
+/*
 float ShadowCalculation(vec4 fragPosLightSpace){
     //divisione prospettica. Non serve per il caso in cui si usi una proiezione ortogonale
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
@@ -91,6 +96,7 @@ float ShadowCalculation(vec4 fragPosLightSpace){
         shadow = 0.0;
     return shadow;
 }
+*/
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir){
     vec3 lightDir = normalize(-light.direction);
@@ -106,8 +112,9 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir){
     float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
     vec3 specular = vec3(texture(material.texture_specular1, fs_in.texCoords)).r * spec * light.specular;
 
-    float shadow = ShadowCalculation(fs_in.FragPosLightSpace);
-    vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular));
+    //float shadow = ShadowCalculation(fs_in.FragPosLightSpace);
+    //vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular));
+    vec3 lighting = (ambient + diffuse + specular);
 
     return lighting;
 }
@@ -176,9 +183,9 @@ void main()
 
     vec3 result = CalcDirLight(dirLight, norm , viewDirection);
     for(int i = 0; i < NR_POINT_LIGHTS; i++)
-        result += CalcPointLight(pointLights[i], norm, fs_in.FragPosition, viewDirection);
+        if (pointLights[i].useThisLight > 0) result += CalcPointLight(pointLights[i], norm, fs_in.FragPosition, viewDirection);
 
-    result += CalcSpotLight(spotLight, norm, fs_in.FragPosition, viewDirection);
+    //if(spotLight.useThisLight > 0) result += CalcSpotLight(spotLight, norm, fs_in.FragPosition, viewDirection);
 
     FragColor = vec4(result, 1.0);
 }
