@@ -62,6 +62,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 }
 
 void saveImage(GLFWwindow* w, const char* filepath) {
+    std::filesystem::path abs_path = std::filesystem::absolute(filepath);
     int width, height;
     glfwGetFramebufferSize(w, &width, &height);
     GLsizei nrChannels = 4;
@@ -73,7 +74,7 @@ void saveImage(GLFWwindow* w, const char* filepath) {
     glReadBuffer(GL_FRONT);
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, buffer.data());
     stbi_flip_vertically_on_write(true);
-    stbi_write_png(filepath, width, height, nrChannels, buffer.data(), stride);
+    stbi_write_png(abs_path.string().c_str(), width, height, nrChannels, buffer.data(), stride);
 }
 
 float getCameraDistance(const float extent_x, const float extent_y, const float extent_z, const glm::mat4 &model) {

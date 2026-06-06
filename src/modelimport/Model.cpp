@@ -120,6 +120,7 @@ unsigned int TextureFromScene(const aiScene* scene, const char *path, const bool
     {
         std::cerr<< "Texture failed to load at path: " << filename << std::endl;
         stbi_image_free(data);
+        std::terminate();
     }
 
     return textureID;
@@ -130,15 +131,16 @@ void Model::Draw(Shader &shader) {
        meshes[i].Draw(shader);
 }
 
-void Model::loadModel(std::string path) {
+bool Model::loadModel(std::string path) {
     Assimp::Importer importer;
     modelscene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
     if (!modelscene || modelscene ->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !modelscene->mRootNode) {
         std::cerr << "ERROR::ASSIMP::" << importer.GetErrorString() << std::endl;
-        return;
+        return false;
     }
     directory = path.substr(0, path.find_last_of('/'));
     processNode(modelscene->mRootNode, modelscene);
+    return true;
 }
 
 void Model::processNode(aiNode *node, const aiScene *scene) {
