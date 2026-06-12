@@ -35,8 +35,9 @@ constexpr unsigned int SCR_HEIGHT = 800;
 
 constexpr float FOV = 39.0f;
 
+constexpr std::string output_directory = "./output/";
+
 // camera
-//TODO: probabilmente mettere la posizione della camera a metà di extent_y.
 Camera camera(glm::vec3(0.0f, 0.9945632175300716f/2.0f, 3.0f),
              FOV,
              SCR_WIDTH /SCR_HEIGHT);
@@ -104,9 +105,9 @@ void randomizeColor(glm::vec3 &randomLightColor) {
     randomLightColor.b = glm::linearRand(0.0f, 1.0f);
 }
 
-//IN INPUT path, extent_x, extent_y, extent_z
+//IN INPUT path, extent_x, extent_y, extent_z, set_test
 int main(int argc, char** argv) {
-    if (argc  <5 ) {
+    if (argc < 5) {
         std::cerr<<"Missing arguments";
         return -1;
     }
@@ -117,8 +118,8 @@ int main(int argc, char** argv) {
     }
 
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // glfw window creation
@@ -186,7 +187,8 @@ int main(int argc, char** argv) {
     int last_slash = current_file.find_last_of("/");
     int last_dot = current_file.find_last_of(".");
     std::string file_name = current_file.substr(last_slash + 1, last_dot - last_slash -1);
-    std::filesystem::create_directory("../resources/output/" + file_name);
+    std::string output_model_directory = output_directory + file_name;
+    std::filesystem::create_directory(output_model_directory);
     int n_image = 0;
 
     glm::vec3 dirLightPosition(-2.0f, 4.0f, -1.0f);
@@ -296,7 +298,7 @@ int main(int argc, char** argv) {
         shader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
         shader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
         shader.setFloat("spotLight.constant", 1.0f);
-        shader.setFloat("spotLight.linear", 0.09f);
+        shader.setFloat("spotLight.linear", 0.9f);
         shader.setFloat("spotLight.quadratic", 0.032f);
         shader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
         shader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
@@ -309,7 +311,7 @@ int main(int argc, char** argv) {
         glfwSwapBuffers(window);
         glfwPollEvents();
 
-        std::string output_path = "../resources/output/"+ file_name + "/" + file_name + "_" + std::to_string(n_image) + ".png";
+        std::string output_path = output_model_directory + "/" + file_name + "_" + std::to_string(n_image) + ".png";
         saveImage(window, output_path.c_str());
         n_image ++;
     }

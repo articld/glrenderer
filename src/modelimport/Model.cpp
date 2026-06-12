@@ -132,13 +132,14 @@ void Model::Draw(Shader &shader) {
 }
 
 bool Model::loadModel(std::string path) {
+    std::filesystem::path abs_path = std::filesystem::absolute(path);
     Assimp::Importer importer;
-    modelscene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
+    modelscene = importer.ReadFile(abs_path.string().c_str(), aiProcess_Triangulate | aiProcess_FlipUVs);
     if (!modelscene || modelscene ->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !modelscene->mRootNode) {
         std::cerr << "ERROR::ASSIMP::" << importer.GetErrorString() << std::endl;
         return false;
     }
-    directory = path.substr(0, path.find_last_of('/'));
+    directory = abs_path.string().substr(0, path.find_last_of('/'));
     processNode(modelscene->mRootNode, modelscene);
     return true;
 }

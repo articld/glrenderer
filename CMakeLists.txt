@@ -1,10 +1,11 @@
-cmake_minimum_required(VERSION 4.1)
+cmake_minimum_required(VERSION 3.22.1)
 
-set(CMAKE_TOOLCHAIN_FILE "C:/Users/Lenovo/.vcpkg-clion/vcpkg/scripts/buildsystems/vcpkg.cmake")
 if(WIN32)
 	set(VCPKG_TARGET_TRIPLET "x64-mingw-dynamic")
+	set(CMAKE_TOOLCHAIN_FILE "C:/Users/Lenovo/.vcpkg-clion/vcpkg/scripts/buildsystems/vcpkg.cmake")
 elseif(UNIX)
 	set(VCPKG_TARGET_TRIPLET "x64-linux")
+	set(CMAKE_TOOLCHAIN_FILE "/mnt/c/Users/Lenovo/.vcpkg-clion/vcpkg/scripts/buildsystems/vcpkg.cmake")
 endif()
 
 project(glrenderer)
