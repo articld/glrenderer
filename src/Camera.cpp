@@ -46,7 +46,7 @@ glm::mat4 Camera::getViewMatrix() const {
 
 glm::mat4 Camera::getPerspectiveMatrix() const {
     glm::mat4 projection = glm::mat4(1.0f);
-    return projection = glm::perspective(glm::radians(FOV), aspectRatio, 0.1f, 100.0f);
+    return projection = glm::perspective(glm::radians(FOV), aspectRatio, 0.1f, 400.0f);
 }
 
 void Camera::updateCameraVectors() {

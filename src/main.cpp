@@ -117,6 +117,11 @@ int main(int argc, char** argv) {
         return -1;
     }
 
+    if (std::stof(argv[2]) > 20.0f) {
+        std::cerr<<"Questo modello non esiste xd";
+        return -1;
+    }
+
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -222,7 +227,9 @@ int main(int argc, char** argv) {
         model *= rotation;
 
         float camera_height = (extent_y/2.0f) * glm::cos(glm::radians(pitch)) - (extent_z/2) * glm::sin(glm::radians(pitch));
-        camera.setPosition(glm::vec3(0, camera_height, getCameraDistance(extent_x, extent_y, extent_z, model)));
+        float camera_distance = getCameraDistance(extent_x, extent_y, extent_z, model);
+        std::cout << camera_distance << std::endl;
+        camera.setPosition(glm::vec3(0, camera_height, camera_distance));
 
         glm::mat4 projection = camera.getPerspectiveMatrix();
         glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
