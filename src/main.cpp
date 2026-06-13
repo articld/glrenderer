@@ -220,7 +220,16 @@ int main(int argc, char** argv) {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glBindVertexArray(0);
-    unsigned int hdri_texture = loadTexture("../resources/cubemaps/relax_inn_seaview_suite.jpg");
+
+    //si potrei automatizzare il processo ma ehhhhhhhhhh chissene
+    unsigned int hdri_textures[] = {
+        loadTexture("../resources/cubemaps/brown_photostudio_01.jpg"),
+        loadTexture("../resources/cubemaps/empty_play_room.jpg"),
+        loadTexture("../resources/cubemaps/glasshouse_interior.jpg"),
+        loadTexture("../resources/cubemaps/industrial_wooden_attic.jpg"),
+        loadTexture("../resources/cubemaps/newman_lobby.jpg"),
+        loadTexture("../resources/cubemaps/relax_inn_seaview_suite.jpg")
+    };
 
     unsigned int shaderUniformBlockIndexVertex = glGetUniformBlockIndex(modelshader.ID, "Matrices");
     glUniformBlockBinding(modelshader.ID, shaderUniformBlockIndexVertex, 0);
@@ -306,7 +315,7 @@ int main(int argc, char** argv) {
         glActiveTexture(GL_TEXTURE0);
         skyboxshader.setInt("skybox", 0);
         skyboxshader.setMat4("model", model);
-        glBindTexture(GL_TEXTURE_2D, hdri_texture);
+        glBindTexture(GL_TEXTURE_2D, hdri_textures[n_image % 6]);
         glBindVertexArray(skyboxVAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glDepthMask(GL_TRUE);
