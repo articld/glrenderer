@@ -18,8 +18,8 @@
 #include "primitives/cube.h"
 #include "primitives/plane.h"
 #include "primitives/verticalplane.h"
-#include "primitives/skybox.h"
 */
+#include "primitives/skybox.h"
 
 #include <iostream>
 #include <vector>
@@ -105,6 +105,51 @@ void randomizeColor(glm::vec3 &randomLightColor) {
     randomLightColor.b = glm::linearRand(0.0f, 1.0f);
 }
 
+unsigned int loadTexture(char const *path)
+{
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+
+    int width, height, nrComponents;
+    unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
+    if (data)
+    {
+        GLenum format;
+        if (nrComponents == 1)
+            format = GL_RED;
+        else if (nrComponents == 3)
+            format = GL_RGB;
+        else if (nrComponents == 4)
+            format = GL_RGBA;
+
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        if (format != GL_RGBA){
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        }
+        else {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        }
+
+        stbi_image_free(data);
+    }
+    else
+    {
+        std::cout << "Texture failed to load at path: " << path << std::endl;
+        stbi_image_free(data);
+    }
+
+    return textureID;
+}
+
 //IN INPUT path, extent_x, extent_y, extent_z, set_test
 int main(int argc, char** argv) {
     if (argc < 5) {
@@ -156,7 +201,8 @@ int main(int argc, char** argv) {
     glDepthFunc(GL_LEQUAL);
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    Shader shader("../src/shaders/model.vs","../src/shaders/model.fs");
+    Shader modelshader("../src/shaders/model.vs","../src/shaders/model.fs");
+    Shader skyboxshader("../src/shaders/skybox.vs","../src/shaders/skybox.fs");
 
     glm::vec3 pointLightsPosition []={
         glm::vec3( 0.7f,  0.2f,  2.0f),
@@ -165,9 +211,22 @@ int main(int argc, char** argv) {
         glm::vec3( 0.0f,  0.0f, -3.0f)
     };
 
+    unsigned int skyboxVAO, skyboxVBO;
+    glGenVertexArrays(1, &skyboxVAO);
+    glGenBuffers(1, &skyboxVBO);
+    glBindVertexArray(skyboxVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skybox), &skybox, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glBindVertexArray(0);
+    unsigned int hdri_texture = loadTexture("../resources/cubemaps/relax_inn_seaview_suite.jpg");
 
-    unsigned int shaderUniformBlockIndexVertex = glGetUniformBlockIndex(shader.ID, "Matrices");
-    glUniformBlockBinding(shader.ID, shaderUniformBlockIndexVertex, 0);
+    unsigned int shaderUniformBlockIndexVertex = glGetUniformBlockIndex(modelshader.ID, "Matrices");
+    glUniformBlockBinding(modelshader.ID, shaderUniformBlockIndexVertex, 0);
+
+    unsigned int skyboxshaderUniformBlockIndexVertex = glGetUniformBlockIndex(skyboxshader.ID, "Matrices");
+    glUniformBlockBinding(skyboxshader.ID, skyboxshaderUniformBlockIndexVertex, 0);
 
     unsigned int uboMatrices;
     glGenBuffers(1, &uboMatrices);
@@ -239,81 +298,94 @@ int main(int argc, char** argv) {
         glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) , sizeof(glm::mat4), glm::value_ptr(view));
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-        shader.use();
-		shader.setFloat("material.shininess", 32.0f);
+        //---------------------------------------------------------------------------------------
+        // DISEGNO LO SFONDO
+        //---------------------------------------------------------------------------------------
+        glDepthMask(GL_FALSE);
+        skyboxshader.use();
+        glActiveTexture(GL_TEXTURE0);
+        skyboxshader.setInt("skybox", 0);
+        skyboxshader.setMat4("model", model);
+        glBindTexture(GL_TEXTURE_2D, hdri_texture);
+        glBindVertexArray(skyboxVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glDepthMask(GL_TRUE);
+
+        modelshader.use();
+		modelshader.setFloat("material.shininess", 32.0f);
 
 		// directional light
         dirLightPosition.x = glm::linearRand(-1.0f, 1.0f);
         dirLightPosition.y = glm::linearRand(-1.0f, 1.0f);
         dirLightPosition.z = glm::linearRand(-1.0f, 1.0f);
 
-        shader.setVec3("dirLight.direction", dirLightPosition);
-        shader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
-        shader.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
-        shader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
+        modelshader.setVec3("dirLight.direction", dirLightPosition);
+        modelshader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
+        modelshader.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
+        modelshader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
         glm::vec3 randomLightColor(glm::linearRand(0.0f, 1.0f), glm::linearRand(0.0f, 1.0f),
                                    glm::linearRand(0.0f, 1.0f));
-        shader.setVec3("dirLight.lightColor", randomLightColor);
+        modelshader.setVec3("dirLight.lightColor", randomLightColor);
         // point light 1
-        shader.setVec3("pointLights[0].position", pointLightsPosition[0]);
-        shader.setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f);
-        shader.setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
-        shader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
-        shader.setFloat("pointLights[0].constant", 1.0f);
-        shader.setFloat("pointLights[0].linear", 0.09f);
-        shader.setFloat("pointLights[0].quadratic", 0.032f);
-        shader.setBool("pointLights[0].useThisLight", glm::linearRand(0.0f, 1.0f) > 0.5f);
+        modelshader.setVec3("pointLights[0].position", pointLightsPosition[0]);
+        modelshader.setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f);
+        modelshader.setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
+        modelshader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
+        modelshader.setFloat("pointLights[0].constant", 1.0f);
+        modelshader.setFloat("pointLights[0].linear", 0.09f);
+        modelshader.setFloat("pointLights[0].quadratic", 0.032f);
+        modelshader.setBool("pointLights[0].useThisLight", glm::linearRand(0.0f, 1.0f) > 0.5f);
         randomizeColor(randomLightColor);
-        shader.setVec3("pointLights[0].lightColor", randomLightColor);
+        modelshader.setVec3("pointLights[0].lightColor", randomLightColor);
         // point light 2
-        shader.setVec3("pointLights[1].position", pointLightsPosition[1]);
-        shader.setVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f);
-        shader.setVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f);
-        shader.setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f);
-        shader.setFloat("pointLights[1].constant", 1.0f);
-        shader.setFloat("pointLights[1].linear", 0.09f);
-        shader.setFloat("pointLights[1].quadratic", 0.032f);
-        shader.setBool("pointLights[1].useThisLight", glm::linearRand(0.0f, 1.0f) > 0.5f);
+        modelshader.setVec3("pointLights[1].position", pointLightsPosition[1]);
+        modelshader.setVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f);
+        modelshader.setVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f);
+        modelshader.setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f);
+        modelshader.setFloat("pointLights[1].constant", 1.0f);
+        modelshader.setFloat("pointLights[1].linear", 0.09f);
+        modelshader.setFloat("pointLights[1].quadratic", 0.032f);
+        modelshader.setBool("pointLights[1].useThisLight", glm::linearRand(0.0f, 1.0f) > 0.5f);
         randomizeColor(randomLightColor);
-        shader.setVec3("pointLights[1].lightColor", randomLightColor);
+        modelshader.setVec3("pointLights[1].lightColor", randomLightColor);
         // point light 3
-        shader.setVec3("pointLights[2].position", pointLightsPosition[2]);
-        shader.setVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
-        shader.setVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f);
-        shader.setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f);
-        shader.setFloat("pointLights[2].constant", 1.0f);
-        shader.setFloat("pointLights[2].linear", 0.09f);
-        shader.setFloat("pointLights[2].quadratic", 0.032f);
-        shader.setBool("pointLights[2].useThisLight", glm::linearRand(0.0f, 1.0f) > 0.5f);
+        modelshader.setVec3("pointLights[2].position", pointLightsPosition[2]);
+        modelshader.setVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
+        modelshader.setVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f);
+        modelshader.setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f);
+        modelshader.setFloat("pointLights[2].constant", 1.0f);
+        modelshader.setFloat("pointLights[2].linear", 0.09f);
+        modelshader.setFloat("pointLights[2].quadratic", 0.032f);
+        modelshader.setBool("pointLights[2].useThisLight", glm::linearRand(0.0f, 1.0f) > 0.5f);
         randomizeColor(randomLightColor);
-        shader.setVec3("pointLights[2].lightColor", randomLightColor);
+        modelshader.setVec3("pointLights[2].lightColor", randomLightColor);
         // point light 4
-        shader.setVec3("pointLights[3].position", pointLightsPosition[3]);
-        shader.setVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
-        shader.setVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f);
-        shader.setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f);
-        shader.setFloat("pointLights[3].constant", 1.0f);
-        shader.setFloat("pointLights[3].linear", 0.09f);
-        shader.setFloat("pointLights[3].quadratic", 0.032f);
-        shader.setBool("pointLights[3].useThisLight", glm::linearRand(0.0f, 1.0f) > 0.5f);
+        modelshader.setVec3("pointLights[3].position", pointLightsPosition[3]);
+        modelshader.setVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
+        modelshader.setVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f);
+        modelshader.setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f);
+        modelshader.setFloat("pointLights[3].constant", 1.0f);
+        modelshader.setFloat("pointLights[3].linear", 0.09f);
+        modelshader.setFloat("pointLights[3].quadratic", 0.032f);
+        modelshader.setBool("pointLights[3].useThisLight", glm::linearRand(0.0f, 1.0f) > 0.5f);
         randomizeColor(randomLightColor);
-        shader.setVec3("pointLights[3].lightColor", randomLightColor);
+        modelshader.setVec3("pointLights[3].lightColor", randomLightColor);
         // spotLight
-        shader.setVec3("spotLight.position", camera.getPosition());
-        shader.setVec3("spotLight.direction", camera.getFront());
-        shader.setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
-        shader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
-        shader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
-        shader.setFloat("spotLight.constant", 1.0f);
-        shader.setFloat("spotLight.linear", 0.9f);
-        shader.setFloat("spotLight.quadratic", 0.032f);
-        shader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
-        shader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
+        modelshader.setVec3("spotLight.position", camera.getPosition());
+        modelshader.setVec3("spotLight.direction", camera.getFront());
+        modelshader.setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
+        modelshader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
+        modelshader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
+        modelshader.setFloat("spotLight.constant", 1.0f);
+        modelshader.setFloat("spotLight.linear", 0.9f);
+        modelshader.setFloat("spotLight.quadratic", 0.032f);
+        modelshader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
+        modelshader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
 
 
-        shader.setMat4("model", model);
+        modelshader.setMat4("model", model);
         glEnable(GL_FRAMEBUFFER_SRGB);
-        item.Draw(shader);
+        item.Draw(modelshader);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -326,80 +398,3 @@ int main(int argc, char** argv) {
     glfwTerminate();
     return 0;
 }
-
-
-// utility function for loading a 2D texture from file
-// ---------------------------------------------------
-/*
-unsigned int loadTexture(char const *path)
-{
-    unsigned int textureID;
-    glGenTextures(1, &textureID);
-
-    int width, height, nrComponents;
-    unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
-    if (data)
-    {
-        GLenum format;
-        if (nrComponents == 1)
-            format = GL_RED;
-        else if (nrComponents == 3)
-            format = GL_RGB;
-        else if (nrComponents == 4)
-            format = GL_RGBA;
-
-        glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-
-        if (format != GL_RGBA){
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        }
-        else {
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        }
-
-        stbi_image_free(data);
-    }
-    else
-    {
-        std::cout << "Texture failed to load at path: " << path << std::endl;
-        stbi_image_free(data);
-    }
-
-    return textureID;
-}
-
-unsigned int loadCubemap(std::vector<std::string> texture_faces) {
-    unsigned int cubemapID;
-    glGenTextures(1, &cubemapID);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapID);
-
-    int width, height, nrChannels;
-    unsigned char *data;
-    for (unsigned int i= 0; i < texture_faces.size(); i++) {
-        data = stbi_load(texture_faces[i].c_str(), &width, &height, &nrChannels, 0);
-        if (data) {
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-            stbi_image_free(data);
-        }
-        else {
-            std::cerr<<"Failed to load cubemap at path " <<texture_faces[i]<<std::endl;
-            stbi_image_free(data);
-        }
-    }
-
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    return cubemapID;
-}
-*/
