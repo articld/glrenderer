@@ -20,10 +20,12 @@
 #include "primitives/verticalplane.h"
 */
 #include "primitives/skybox.h"
+#include "scene_lights.h"
 
 #include <iostream>
 #include <vector>
 #include <filesystem>
+
 
 /*
 unsigned int loadCubemap(std::vector<std::string> texture_faces);
@@ -97,12 +99,6 @@ float getCameraDistance(const float extent_x, const float extent_y, const float 
         max_distance = std::max(max_distance, distance);
     }
     return max_distance / glm::tan(glm::radians(FOV) / 2.0f);
-}
-
-void randomizeColor(glm::vec3 &randomLightColor) {
-    randomLightColor.r = glm::linearRand(0.0f, 1.0f);
-    randomLightColor.g = glm::linearRand(0.0f, 1.0f);
-    randomLightColor.b = glm::linearRand(0.0f, 1.0f);
 }
 
 unsigned int loadTexture(char const *path)
@@ -202,6 +198,7 @@ int main(int argc, char** argv) {
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     Shader modelshader("../src/shaders/model.vs","../src/shaders/model.fs");
+    Shader simplediffuse("../src/shaders/model.vs", "../src/shaders/simplediffuse.fs");
     Shader skyboxshader("../src/shaders/skybox.vs","../src/shaders/skybox.fs");
 
     glm::vec3 pointLightsPosition []={
@@ -237,6 +234,9 @@ int main(int argc, char** argv) {
     unsigned int skyboxshaderUniformBlockIndexVertex = glGetUniformBlockIndex(skyboxshader.ID, "Matrices");
     glUniformBlockBinding(skyboxshader.ID, skyboxshaderUniformBlockIndexVertex, 0);
 
+    unsigned int simplediffuseUniformBlockIndexVertex = glGetUniformBlockIndex(skyboxshader.ID, "Matrices");
+    glUniformBlockBinding(simplediffuse.ID, simplediffuseUniformBlockIndexVertex, 0);
+
     unsigned int uboMatrices;
     glGenBuffers(1, &uboMatrices);
     glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
@@ -264,7 +264,9 @@ int main(int argc, char** argv) {
     std::filesystem::create_directory(output_model_directory);
     int n_image = 0;
 
-    glm::vec3 dirLightPosition(-2.0f, 4.0f, -1.0f);
+    //---------------------------------------------------------------------------------------
+    // RENDER LOOP
+    //---------------------------------------------------------------------------------------
     while(!glfwWindowShouldClose(window)){
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
@@ -296,7 +298,6 @@ int main(int argc, char** argv) {
 
         float camera_height = (extent_y/2.0f) * glm::cos(glm::radians(pitch)) - (extent_z/2) * glm::sin(glm::radians(pitch));
         float camera_distance = getCameraDistance(extent_x, extent_y, extent_z, model);
-        std::cout << camera_distance << std::endl;
         camera.setPosition(glm::vec3(0, camera_height, camera_distance));
 
         glm::mat4 projection = camera.getPerspectiveMatrix();
@@ -320,78 +321,12 @@ int main(int argc, char** argv) {
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glDepthMask(GL_TRUE);
 
+        //---------------------------------------------------------------------------------------
+        // DISEGNO IL MODELLO
+        //---------------------------------------------------------------------------------------
         modelshader.use();
 		modelshader.setFloat("material.shininess", 32.0f);
-
-		// directional light
-        dirLightPosition.x = glm::linearRand(-1.0f, 1.0f);
-        dirLightPosition.y = glm::linearRand(-1.0f, 1.0f);
-        dirLightPosition.z = glm::linearRand(-1.0f, 1.0f);
-
-        modelshader.setVec3("dirLight.direction", dirLightPosition);
-        modelshader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
-        modelshader.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
-        modelshader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
-        glm::vec3 randomLightColor(glm::linearRand(0.0f, 1.0f), glm::linearRand(0.0f, 1.0f),
-                                   glm::linearRand(0.0f, 1.0f));
-        modelshader.setVec3("dirLight.lightColor", randomLightColor);
-        // point light 1
-        modelshader.setVec3("pointLights[0].position", pointLightsPosition[0]);
-        modelshader.setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f);
-        modelshader.setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
-        modelshader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
-        modelshader.setFloat("pointLights[0].constant", 1.0f);
-        modelshader.setFloat("pointLights[0].linear", 0.09f);
-        modelshader.setFloat("pointLights[0].quadratic", 0.032f);
-        modelshader.setBool("pointLights[0].useThisLight", glm::linearRand(0.0f, 1.0f) > 0.5f);
-        randomizeColor(randomLightColor);
-        modelshader.setVec3("pointLights[0].lightColor", randomLightColor);
-        // point light 2
-        modelshader.setVec3("pointLights[1].position", pointLightsPosition[1]);
-        modelshader.setVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f);
-        modelshader.setVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f);
-        modelshader.setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f);
-        modelshader.setFloat("pointLights[1].constant", 1.0f);
-        modelshader.setFloat("pointLights[1].linear", 0.09f);
-        modelshader.setFloat("pointLights[1].quadratic", 0.032f);
-        modelshader.setBool("pointLights[1].useThisLight", glm::linearRand(0.0f, 1.0f) > 0.5f);
-        randomizeColor(randomLightColor);
-        modelshader.setVec3("pointLights[1].lightColor", randomLightColor);
-        // point light 3
-        modelshader.setVec3("pointLights[2].position", pointLightsPosition[2]);
-        modelshader.setVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
-        modelshader.setVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f);
-        modelshader.setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f);
-        modelshader.setFloat("pointLights[2].constant", 1.0f);
-        modelshader.setFloat("pointLights[2].linear", 0.09f);
-        modelshader.setFloat("pointLights[2].quadratic", 0.032f);
-        modelshader.setBool("pointLights[2].useThisLight", glm::linearRand(0.0f, 1.0f) > 0.5f);
-        randomizeColor(randomLightColor);
-        modelshader.setVec3("pointLights[2].lightColor", randomLightColor);
-        // point light 4
-        modelshader.setVec3("pointLights[3].position", pointLightsPosition[3]);
-        modelshader.setVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
-        modelshader.setVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f);
-        modelshader.setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f);
-        modelshader.setFloat("pointLights[3].constant", 1.0f);
-        modelshader.setFloat("pointLights[3].linear", 0.09f);
-        modelshader.setFloat("pointLights[3].quadratic", 0.032f);
-        modelshader.setBool("pointLights[3].useThisLight", glm::linearRand(0.0f, 1.0f) > 0.5f);
-        randomizeColor(randomLightColor);
-        modelshader.setVec3("pointLights[3].lightColor", randomLightColor);
-        // spotLight
-        modelshader.setVec3("spotLight.position", camera.getPosition());
-        modelshader.setVec3("spotLight.direction", camera.getFront());
-        modelshader.setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
-        modelshader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
-        modelshader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
-        modelshader.setFloat("spotLight.constant", 1.0f);
-        modelshader.setFloat("spotLight.linear", 0.9f);
-        modelshader.setFloat("spotLight.quadratic", 0.032f);
-        modelshader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
-        modelshader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
-
-
+		scene_lights(modelshader, pointLightsPosition);
         modelshader.setMat4("model", model);
         glEnable(GL_FRAMEBUFFER_SRGB);
         item.Draw(modelshader);

@@ -42,6 +42,7 @@ add_executable(glrenderer
 		src/primitives/skybox.h
 		src/modelimport/Directory.cpp
 		src/modelimport/Directory.h
+		src/scene_lights.h
 )
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	target_link_libraries(glrenderer PRIVATE

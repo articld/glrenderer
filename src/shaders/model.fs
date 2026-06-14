@@ -186,7 +186,7 @@ void main()
     for(int i = 0; i < NR_POINT_LIGHTS; i++)
         if (pointLights[i].useThisLight > 0) result += CalcPointLight(pointLights[i], norm, fs_in.FragPosition, viewDirection);
 
-    result += CalcSpotLight(spotLight, norm, fs_in.FragPosition, viewDirection);
+    //result += CalcSpotLight(spotLight, norm, fs_in.FragPosition, viewDirection);
 
     FragColor = vec4(result, 1.0);
 }
