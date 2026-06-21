@@ -27,5 +27,13 @@ uniform Material material;
 
 void main()
 {
-    FragColor = texture(material.texture_diffuse1, fs_in.texCoords);
+    vec3 lightDirection = normalize(vec3(-2.0, 4.0, -1.0));
+    vec3 ambient = vec3(0.05, 0.05, 0.05) * vec3(texture(material.texture_diffuse1, fs_in.texCoords));
+
+    vec3 normal = normalize(fs_in.normal);
+    float diff = max(dot(normal, lightDirection), 0.0);
+    vec3 diffuse = diff * vec3(0.4, 0.4, 0.4) * vec3(texture(material.texture_diffuse1, fs_in.texCoords));
+
+    vec3 color = ambient + diffuse;
+    FragColor = vec4(color, 1.0);
 }

@@ -92,7 +92,9 @@ float getCameraDistance(const float extent_x, const float extent_y, const float 
         glm::vec3(-extent_x/2,  extent_y,  extent_z/2),
         glm::vec3( extent_x/2,  extent_y,  extent_z/2)
     };
+
     float max_distance = 0.0f;
+
     for (int i = 0; i < 8; i++) {
         glm::vec3 rotated_corner = glm::vec3(model* glm::vec4(corners[i], 1.0f));
         float distance = glm::length(rotated_corner);
@@ -101,8 +103,7 @@ float getCameraDistance(const float extent_x, const float extent_y, const float 
     return max_distance / glm::tan(glm::radians(FOV) / 2.0f);
 }
 
-unsigned int loadTexture(char const *path)
-{
+unsigned int loadTexture(char const *path) {
     unsigned int textureID;
     glGenTextures(1, &textureID);
 
@@ -170,7 +171,7 @@ int main(int argc, char** argv) {
 
     // glfw window creation
     // --------------------
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "glrenderer", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "YORO - You Only Render Once", NULL, NULL);
     if (window == NULL){
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -274,8 +275,42 @@ int main(int argc, char** argv) {
         processInput(window);
         glDisable(GL_FRAMEBUFFER_SRGB);
 
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        std::string output_path = output_model_directory + "/" + file_name + "_" + std::to_string(n_image) + ".png";
+        //la prima immagine è quella normale (circa)
+        if (n_image == 0) {
+            //quello che sto facendo fa schifo ma non ho voglia di fare le cose fatte bene quindiiiiii yup
+            float clean_pitch = 12.0f;
+            float clean_yaw = 0.0f;
+            float clean_roll = 0.0f;
+
+            const glm::mat4 clean_rotation = glm::eulerAngleXYZ(glm::radians(clean_pitch), glm::radians(clean_yaw), glm::radians(clean_roll));
+            auto clean_model = glm::mat4(1.0f);
+            clean_model *= clean_rotation;
+
+            float clean_camera_height = (extent_y/2.0f) * glm::cos(glm::radians(clean_pitch)) - (extent_z/2) * glm::sin(glm::radians(clean_pitch));
+            float clean_camera_distance = getCameraDistance(extent_x, extent_y, extent_z, clean_model);
+            camera.setPosition(glm::vec3(0, clean_camera_height, clean_camera_distance));
+
+            glm::mat4 clean_projection = camera.getPerspectiveMatrix();
+            glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
+            glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(clean_projection));
+            glm::mat4 clean_view = camera.getViewMatrix();
+            glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
+            glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) , sizeof(glm::mat4), glm::value_ptr(clean_view));
+            glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            simplediffuse.use();
+            simplediffuse.setMat4("model", clean_model);
+
+            glEnable(GL_FRAMEBUFFER_SRGB);
+            item.Draw(simplediffuse);
+            glDisable(GL_FRAMEBUFFER_SRGB);
+            glfwSwapBuffers(window);
+            saveImage(window, output_path.c_str());
+            n_image++;
+        }
 
         model = glm::mat4(1.0f);
         float  scale_x = glm::linearRand(0.8f, 1.2f);
@@ -296,21 +331,29 @@ int main(int argc, char** argv) {
         const glm::mat4 rotation = glm::eulerAngleXYZ(glm::radians(pitch), glm::radians(yaw), glm::radians(roll));
         model *= rotation;
 
+
         float camera_height = (extent_y/2.0f) * glm::cos(glm::radians(pitch)) - (extent_z/2) * glm::sin(glm::radians(pitch));
         float camera_distance = getCameraDistance(extent_x, extent_y, extent_z, model);
         camera.setPosition(glm::vec3(0, camera_height, camera_distance));
 
         glm::mat4 projection = camera.getPerspectiveMatrix();
+        glm::mat4 view = camera.getViewMatrix();
         glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
         glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
-        glm::mat4 view = camera.getViewMatrix();
+
         glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
         glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) , sizeof(glm::mat4), glm::value_ptr(view));
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
+        output_path = output_model_directory + "/" + file_name + "_" + std::to_string(n_image) + ".png";
+
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         //---------------------------------------------------------------------------------------
         // DISEGNO LO SFONDO
         //---------------------------------------------------------------------------------------
+
         glDepthMask(GL_FALSE);
         skyboxshader.use();
         glActiveTexture(GL_TEXTURE0);
@@ -334,7 +377,6 @@ int main(int argc, char** argv) {
         glfwSwapBuffers(window);
         glfwPollEvents();
 
-        std::string output_path = output_model_directory + "/" + file_name + "_" + std::to_string(n_image) + ".png";
         saveImage(window, output_path.c_str());
         n_image ++;
     }
