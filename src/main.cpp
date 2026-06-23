@@ -202,13 +202,6 @@ int main(int argc, char** argv) {
     Shader simplediffuse("../src/shaders/model.vs", "../src/shaders/simplediffuse.fs");
     Shader skyboxshader("../src/shaders/skybox.vs","../src/shaders/skybox.fs");
 
-    glm::vec3 pointLightsPosition []={
-        glm::vec3( 0.7f,  0.2f,  2.0f),
-        glm::vec3( 2.3f, -3.3f, -4.0f),
-        glm::vec3(-4.0f,  2.0f, -12.0f),
-        glm::vec3( 0.0f,  0.0f, -3.0f)
-    };
-
     unsigned int skyboxVAO, skyboxVBO;
     glGenVertexArrays(1, &skyboxVAO);
     glGenBuffers(1, &skyboxVBO);
@@ -248,6 +241,14 @@ int main(int argc, char** argv) {
     float extent_x = std::stof(argv[2]);
     float extent_y = std::stof(argv[3]);
     float extent_z = std::stof(argv[4]);
+
+    glm::vec3 pointLightsPosition []={
+        glm::vec3( (0.7f + extent_x/2),  (0.2f + extent_y),  (2.0f + extent_z/2)),
+        glm::vec3( (2.3f + extent_x/2), (-3.3f - extent_y), (-4.0f - extent_z/2)),
+        glm::vec3((-4.0f - extent_x/2),  (2.0f + extent_y), (-12.0f - extent_z/2)),
+        glm::vec3( 0.0f,  0.0f, (-3.0f - extent_z/2))
+    };
+
 
     auto model = glm::mat4(1.0f);
     float pitch = - 15.0f;
