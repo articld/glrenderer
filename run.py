@@ -5,8 +5,8 @@ import os
 from datetime import datetime
 
 # --- Configuration ---
-INPUT_CSV = "3dmodels.csv"
-RENDERER_EXE = "glrenderer.exe"
+INPUT_CSV = "final_3dmodels.csv"
+RENDERER_EXE = "./cmake-build-release/glrenderer.exe"
 RENDERED_CSV = "rendered_models.csv"
 FAILED_CSV = "failed_renders.csv"
 
@@ -72,7 +72,7 @@ def process_csv(input_csv: str) -> None:
 
         for row in reader:
             model_id = row["3dmodel_id"].strip()
-            model_path = row["path"].strip()
+            model_path = "G:/3dmodels/original/" + row["path"].strip()
             extent_x = row["extent_x"].strip()
             extent_y = row["extent_y"].strip()
             extent_z = row["extent_z"].strip()

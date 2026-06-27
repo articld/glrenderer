@@ -37,7 +37,7 @@ constexpr unsigned int SCR_HEIGHT = 800;
 
 constexpr float FOV = 39.0f;
 
-constexpr std::string output_directory = "./output/";
+constexpr std::string output_directory = "H:/output/";
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.9945632175300716f/2.0f, 3.0f),
@@ -168,6 +168,8 @@ int main(int argc, char** argv) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_SAMPLES, 16);
 
     // glfw window creation
     // --------------------
@@ -182,7 +184,6 @@ int main(int argc, char** argv) {
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glfwWindowHint(GLFW_SAMPLES, 16);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
         std::cout << "Failed to initialize GLAD" << std::endl;
@@ -198,9 +199,9 @@ int main(int argc, char** argv) {
     glDepthFunc(GL_LEQUAL);
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    Shader modelshader("../src/shaders/model.vs","../src/shaders/model.fs");
-    Shader simplediffuse("../src/shaders/model.vs", "../src/shaders/simplediffuse.fs");
-    Shader skyboxshader("../src/shaders/skybox.vs","../src/shaders/skybox.fs");
+    Shader modelshader("./src/shaders/model.vs","./src/shaders/model.fs");
+    Shader simplediffuse("./src/shaders/model.vs", "./src/shaders/simplediffuse.fs");
+    Shader skyboxshader("./src/shaders/skybox.vs","./src/shaders/skybox.fs");
 
     unsigned int skyboxVAO, skyboxVBO;
     glGenVertexArrays(1, &skyboxVAO);
@@ -214,12 +215,12 @@ int main(int argc, char** argv) {
 
     //si potrei automatizzare il processo ma ehhhhhhhhhh chissene
     unsigned int hdri_textures[] = {
-        loadTexture("../resources/cubemaps/brown_photostudio_01.jpg"),
-        loadTexture("../resources/cubemaps/empty_play_room.jpg"),
-        loadTexture("../resources/cubemaps/glasshouse_interior.jpg"),
-        loadTexture("../resources/cubemaps/industrial_wooden_attic.jpg"),
-        loadTexture("../resources/cubemaps/newman_lobby.jpg"),
-        loadTexture("../resources/cubemaps/relax_inn_seaview_suite.jpg")
+        loadTexture("./resources/cubemaps/brown_photostudio_01.jpg"),
+        loadTexture("./resources/cubemaps/empty_play_room.jpg"),
+        loadTexture("./resources/cubemaps/glasshouse_interior.jpg"),
+        loadTexture("./resources/cubemaps/industrial_wooden_attic.jpg"),
+        loadTexture("./resources/cubemaps/newman_lobby.jpg"),
+        loadTexture("./resources/cubemaps/relax_inn_seaview_suite.jpg")
     };
 
     unsigned int shaderUniformBlockIndexVertex = glGetUniformBlockIndex(modelshader.ID, "Matrices");
@@ -263,7 +264,7 @@ int main(int argc, char** argv) {
     int last_dot = current_file.find_last_of(".");
     std::string file_name = current_file.substr(last_slash + 1, last_dot - last_slash -1);
     std::string output_model_directory = output_directory + file_name;
-    std::filesystem::create_directory(output_model_directory);
+    std::filesystem::create_directories(output_model_directory);
     int n_image = 0;
 
     //---------------------------------------------------------------------------------------
@@ -360,7 +361,7 @@ int main(int argc, char** argv) {
         glActiveTexture(GL_TEXTURE0);
         skyboxshader.setInt("skybox", 0);
         skyboxshader.setMat4("model", model);
-        glBindTexture(GL_TEXTURE_2D, hdri_textures[n_image % 6]);
+        glBindTexture(GL_TEXTURE_2D, hdri_textures[glm::linearRand(0,5)]);
         glBindVertexArray(skyboxVAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glDepthMask(GL_TRUE);
